@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  AlertCircle,
-  Calendar,
-  Clock,
-  CalendarDays,
-  CalendarCheck,
-  CheckCircle2,
-} from "lucide-react";
+import { AlertCircle, Calendar, Clock, CalendarDays, CalendarCheck, CheckCircle2 } from "lucide-react";
 import type { Task } from "@/types/tasks";
 import TaskCard from "./TaskCard";
 
@@ -19,13 +12,7 @@ interface TaskListViewProps {
   onNewTask: () => void;
 }
 
-export default function TaskListView({
-  tasks,
-  onEdit,
-  onStatusCycle,
-  onDelete,
-  onNewTask,
-}: TaskListViewProps) {
+export default function TaskListView({ tasks, onEdit, onStatusCycle, onDelete, onNewTask }: TaskListViewProps) {
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const endOfToday = startOfToday + 86400000;
@@ -127,10 +114,10 @@ export default function TaskListView({
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
                 <Icon className={`w-4 h-4 ${grp.color}`} />
-                <h3 className="font-outfit font-black text-sm text-zinc-900 dark:text-white">
+                <h3 className="text-balance font-outfit font-black text-sm text-zinc-900 dark:text-white">
                   {grp.title}
                 </h3>
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+                <span className="text-xs font-extrabold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
                   {grp.tasks.length}
                 </span>
               </div>

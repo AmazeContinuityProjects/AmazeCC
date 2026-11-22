@@ -31,13 +31,23 @@ import type { Task } from "@/types/tasks";
 import { isTaskOverdue } from "@/types/tasks";
 import posthog from "posthog-js";
 import { InsightCarousel, PageShell, useCarousel, type InsightSlide } from "../shared/primitives";
-import { TILE } from "@/lib/uiTokens";
+import {
+  BADGE_MD,
+  MICRO_LABEL,
+  SECTION_TITLE,
+  STAT_GRID,
+  TEXT_CAPTION,
+  TILE,
+  TONE_BADGE as CANON_TONE_BADGE,
+  TONE_TEXT as CANON_TONE_TEXT,
+} from "@/lib/uiTokens";
 import KanbanView from "./KanbanView";
 import TaskListView from "./TaskListView";
 import TaskWeekView from "./TaskWeekView";
 import FocusPage from "./FocusPage";
 import TaskEditSheet from "./TaskEditSheet";
 import MoodleImportModal from "./MoodleImportModal";
+import { useCarouselAutoplayPolicy } from "./useCarouselAutoplayPolicy";
 
 const posthogConfigured = Boolean(
   process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST,
@@ -52,21 +62,15 @@ interface TasksTabProps {
   onBack?: () => void;
 }
 
-// Tone tokens mirror the course pages (CourseDetailSubpage STATUS_/TONE_ maps)
+// The red/amber/emerald/indigo entries are byte-identical to the canonical
+// maps; spread those and keep the diverging zinc step as a local override.
 const TONE_TEXT: Record<string, string> = {
-  red: "text-red-600 dark:text-red-400",
-  amber: "text-amber-600 dark:text-amber-400",
-  emerald: "text-emerald-600 dark:text-emerald-400",
-  indigo: "text-indigo-600 dark:text-indigo-400",
+  ...CANON_TONE_TEXT,
   zinc: "text-zinc-400 dark:text-zinc-500",
 };
 
 const TONE_BADGE: Record<string, string> = {
-  red: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-  amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  indigo:
-    "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/40",
+  ...CANON_TONE_BADGE,
   zinc: "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/20",
 };
 
@@ -258,7 +262,8 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
     [todayTasks, overdueTasks.length, scheduledChunks, doneCount],
   );
 
-  const carousel = useCarousel(slides.length);
+  const autoplayMs = useCarouselAutoplayPolicy();
+  const carousel = useCarousel(slides.length, autoplayMs);
   const insightSlides = useMemo<InsightSlide[]>(
     () =>
       slides.map((s) => ({
@@ -302,18 +307,12 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
       </div>
 
       {/* ── STAT CARDS (static hero + rotating carousel) ── */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+      <div className={STAT_GRID}>
         {/* CARD 1: OPEN TASKS */}
         <div className={CARD_BASE}>
           <div className="flex items-center justify-between gap-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
-              Open tasks
-            </span>
-            <span
-              className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${
-                TONE_BADGE[overdueTasks.length > 0 ? "red" : "emerald"]
-              }`}
-            >
+            <span className={`${MICRO_LABEL} font-outfit truncate`}>Open tasks</span>
+            <span className={`${BADGE_MD} shrink-0 ${TONE_BADGE[overdueTasks.length > 0 ? "red" : "emerald"]}`}>
               {overdueTasks.length > 0 ? "Overdue" : "On track"}
             </span>
           </div>
@@ -324,7 +323,7 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
               {openTasks.length}
             </span>
           </div>
-          <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
+          <p className={`${TEXT_CAPTION} font-medium truncate`}>
             {dueThisWeek} due this week · {doneCount} done
           </p>
         </div>
@@ -341,7 +340,9 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
 
       {/* ── VIEW SEGMENTS + COURSE FILTER ── */}
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-1.5 bg-zinc-100/80 dark:bg-zinc-900/60 p-1.5 rounded-2xl border border-zinc-200/50 dark:border-zinc-800 w-fit">
+        {/* One unwrapped track: labels collapse to icons below `sm`, and every
+            icon button keeps an accessible name for the narrow layout. */}
+        <div className="flex items-center gap-1.5 bg-zinc-100/80 dark:bg-zinc-900/60 p-1.5 rounded-2xl border border-zinc-200/50 dark:border-zinc-800 max-w-full overflow-x-auto no-scrollbar">
           {(Object.keys(VIEW_META) as TasksViewMode[]).map((mode) => {
             const Icon = VIEW_META[mode].icon;
             const isActive = viewMode === mode;
@@ -350,12 +351,14 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
                 key={mode}
                 type="button"
                 onClick={() => setViewMode(mode)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
+                aria-label={`${VIEW_META[mode].label} view`}
+                title={VIEW_META[mode].label}
+                className={`flex shrink-0 items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
                   isActive ? SEG_ACTIVE : SEG_IDLE
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{VIEW_META[mode].label}</span>
+                <Icon className="w-3.5 h-3.5" aria-hidden />
+                <span className="hidden sm:inline">{VIEW_META[mode].label}</span>
               </button>
             );
           })}
@@ -395,10 +398,8 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
             ) : (
               <Timer className="w-4 h-4 text-indigo-500" />
             )}
-            <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
-              {VIEW_META[viewMode].section}
-            </h2>
-            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
+            <h2 className={SECTION_TITLE}>{VIEW_META[viewMode].section}</h2>
+            <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
               {filteredTasks.length}
             </span>
           </div>
@@ -406,25 +407,19 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
           {/* Slide shortcuts mirror the carousel headline colours */}
           <div className="flex items-center gap-2">
             {overdueTasks.length > 0 && (
-              <span
-                className={`inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${TONE_BADGE.red}`}
-              >
+              <span className={`inline-flex items-center gap-1 ${BADGE_MD} ${TONE_BADGE.red}`}>
                 <AlertCircle className="w-3 h-3" />
                 {overdueTasks.length} overdue
               </span>
             )}
             {todayTasks > 0 && (
-              <span
-                className={`inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${TONE_BADGE.indigo}`}
-              >
+              <span className={`inline-flex items-center gap-1 ${BADGE_MD} ${TONE_BADGE.indigo}`}>
                 <Clock className="w-3 h-3" />
                 {todayTasks} today
               </span>
             )}
             {doneCount > 0 && (
-              <span
-                className={`hidden sm:inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${TONE_BADGE.emerald}`}
-              >
+              <span className={`hidden sm:inline-flex items-center gap-1 ${BADGE_MD} ${TONE_BADGE.emerald}`}>
                 <CheckCircle2 className="w-3 h-3" />
                 {doneCount} done
               </span>

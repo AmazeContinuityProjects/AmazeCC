@@ -10,7 +10,8 @@
  * candidate, and one predicate both sheets call while filtering their lists.
  */
 import type { CategoryDetail } from "@/lib/curriculum";
-import { hasSlot, schemaSlotFor, splitSlots } from "@/lib/slots";
+import { splitSlots } from "@/lib/slots";
+import { ffcsCanonicalSlot, ffcsHasSlot } from "@/lib/ffcsTimetableData";
 
 /** course code → every slot token its offerings run in (`NIL` dropped). */
 export type CatalogSlotIndex = Map<string, Set<string>>;
@@ -103,7 +104,7 @@ export function buildSlotIndex(rows: readonly SlotIndexRow[]): CatalogSlotIndex 
  * `hasSlot`, which understands both spellings in either direction.
  */
 export function canonicalSlot(token: string): string {
-  return schemaSlotFor(token) ?? normaliseCode(token);
+  return ffcsCanonicalSlot(token) || normaliseCode(token);
 }
 
 /**
@@ -232,8 +233,8 @@ export function catalogFiltersActive(state: CatalogFilterState): boolean {
  *
  * `slotsOfCourse` comes from the caller's own slot index (or is skipped when
  * the caller has no index for that code) because the index is built per host
- * from whatever catalogue is loaded. Slot chips match with `hasSlot` so a
- * law-spelled course answers to its engineering chip. Curriculum-only keeps a
+ * from whatever catalogue is loaded. Slot chips match with the canonical
+ * alias lookup so a law-spelled course answers to its engineering chip. Curriculum-only keeps a
  * course when `courseCategory` does — an exact listing (kept under its own
  * category) or any shared code start (kept as an open-elective candidate),
  * so lab/embedded variants and the rest of a curriculum code's family come
@@ -252,7 +253,7 @@ export function matchesCatalogFilters(
 ): boolean {
   if (state.slots.length > 0) {
     const courseSlots = slotsOfCourse ? [...slotsOfCourse] : [];
-    if (courseSlots.length === 0 || !state.slots.some((chip) => hasSlot(courseSlots, chip))) {
+    if (courseSlots.length === 0 || !state.slots.some((chip) => ffcsHasSlot(courseSlots, chip))) {
       return false;
     }
   }

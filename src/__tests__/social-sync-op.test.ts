@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { installLocalStorage } from "./helpers/localStorage";
+installLocalStorage();
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getOp } from "../lib/sync-engine/operation-registry";
 import "../lib/sync-engine/operations";
 import {
@@ -14,7 +16,27 @@ import {
  * threw, every op after it would be skipped — in chain 1 that was still `buses`
  * and `bulk`. So "never throws" is a contract, not a style preference, and it is
  * asserted here rather than left to review.
+ *
+ * Since the Amaze ID change the op reaches the route through `social/client`'s
+ * `syncIdentity` (Amaze ID transport auth + VTOP creds merged into the body),
+ * not through `ctx.request`. The route mock below is therefore `apiRequest`.
  */
+
+const apiMock = vi.fn();
+const ensureVtopMock = vi.fn();
+
+vi.mock("../lib/sync-engine/request-layer", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/sync-engine/request-layer")>();
+  return { ...actual, apiRequest: (...args: unknown[]) => apiMock(...args) };
+});
+vi.mock("../lib/sync-engine/credential-manager", () => ({
+  credentialManager: { ensureVtopSession: (...args: unknown[]) => ensureVtopMock(...args) },
+}));
+vi.mock("../lib/oauth2", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/oauth2")>();
+  return { ...actual, getValidAccessToken: () => Promise.resolve("test-access-token") };
+});
+
 function makeCtx(overrides: Record<string, unknown> = {}) {
   return {
     ids: { VtopUsername: "realuser", VtopPassword: "x" },
@@ -40,9 +62,35 @@ const OK_RESPONSE = {
   version: 4,
   busyMap: { "MON:A1": { c: "BACSE101", t: "Course", v: "AB1-607" } },
   courses: [],
-  peers: [{ handle: "AMZ-AAAA-BBBB", name: "Peer", visibility: "coarse", shared: true, lastPublishedAt: null, semesterId: null, isSelf: false }],
-  grantSecrets: [{ grantId: "gr_1", secret: "s".repeat(43), peerHandle: "AMZ-AAAA-BBBB", visibility: "coarse", createdAt: "2026-01-01T00:00:00.000Z" }],
+  peers: [
+    {
+      handle: "AMZ-AAAA-BBBB",
+      name: "Peer",
+      visibility: "coarse",
+      shared: true,
+      lastPublishedAt: null,
+      semesterId: null,
+      isSelf: false,
+    },
+  ],
+  grantSecrets: [
+    {
+      grantId: "gr_1",
+      secret: "s".repeat(43),
+      peerHandle: "AMZ-AAAA-BBBB",
+      visibility: "coarse",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    },
+  ],
 };
+
+beforeEach(() => {
+  apiMock.mockReset();
+  apiMock.mockResolvedValue(OK_RESPONSE);
+  ensureVtopMock.mockReset();
+  ensureVtopMock.mockResolvedValue({ cookies: ["x"], authorizedID: "A", csrf: "c" });
+  localStorage.clear();
+});
 
 describe("social op registration", () => {
   it("is registered under the name the chains call", () => {
@@ -57,83 +105,86 @@ describe("social op demo guard", () => {
     const res = await getOp("social")!.run(ctx, {});
     expect(res).toBeNull();
     // DEMO123 is not a real session, so calling through would 401.
-    expect((ctx as never as { request: ReturnType<typeof vi.fn> }).request).not.toHaveBeenCalled();
+    expect(apiMock).not.toHaveBeenCalled();
   });
 
   it("bails when demoMode is passed even with a real username", async () => {
-    const ctx = makeCtx();
-    const res = await getOp("social")!.run(ctx, { demoMode: true });
+    const res = await getOp("social")!.run(makeCtx(), { demoMode: true });
     expect(res).toBeNull();
-    expect((ctx as never as { request: ReturnType<typeof vi.fn> }).request).not.toHaveBeenCalled();
+    expect(apiMock).not.toHaveBeenCalled();
   });
 
   it("bails on the DEMO123 authorized id", async () => {
     const ctx = makeCtx({ ids: { VtopUsername: "DEMO123", VtopPassword: "" } });
     expect(await getOp("social")!.run(ctx, {})).toBeNull();
+    expect(apiMock).not.toHaveBeenCalled();
   });
 });
 
 describe("social op request", () => {
   it("posts the proposed semester and merges vtop auth", async () => {
-    const request = vi.fn().mockResolvedValue(OK_RESPONSE);
-    const ctx = makeCtx({ request });
-    await getOp("social")!.run(ctx, { proposedSemesterId: "CH20262701" });
-    expect(request).toHaveBeenCalledWith(
+    await getOp("social")!.run(makeCtx(), { proposedSemesterId: "CH20262701" });
+    expect(apiMock).toHaveBeenCalledWith(
       "social/identity/sync",
-      { proposedSemesterId: "CH20262701" },
-      expect.objectContaining({ auth: "vtop" })
+      expect.objectContaining({
+        method: "POST",
+        // Amaze ID is now the transport auth; VTOP credentials are merged
+        // into the body so the server can verify the caller's identity.
+        auth: "amazeId",
+        body: expect.objectContaining({
+          proposedSemesterId: "CH20262701",
+          cookies: ["x"],
+          authorizedID: "A",
+          csrf: "c",
+        }),
+      }),
     );
   });
 
   it("accepts semesterId as an alias, since the chains disagree on the name", async () => {
-    const request = vi.fn().mockResolvedValue(OK_RESPONSE);
-    await getOp("social")!.run(makeCtx({ request }), { semesterId: "CH20262701" });
-    expect(request.mock.calls[0][1]).toEqual({ proposedSemesterId: "CH20262701" });
+    await getOp("social")!.run(makeCtx(), { semesterId: "CH20262701" });
+    expect(apiMock.mock.calls[0][1].body.proposedSemesterId).toBe("CH20262701");
   });
 
   it("sends an empty body rather than a malformed one when no term is known", async () => {
-    const request = vi.fn().mockResolvedValue(OK_RESPONSE);
-    await getOp("social")!.run(makeCtx({ request }), {});
-    expect(request.mock.calls[0][1]).toEqual({});
+    await getOp("social")!.run(makeCtx(), {});
+    const body = apiMock.mock.calls[0][1].body;
+    // No bogus/undefined term field — only the credentials the route needs.
+    expect(body).not.toHaveProperty("proposedSemesterId");
+    expect(body).toEqual(expect.objectContaining({ cookies: ["x"], authorizedID: "A", csrf: "c" }));
   });
 });
 
 describe("social op never throws", () => {
   it("returns null on a network failure instead of rejecting", async () => {
-    const request = vi.fn().mockRejectedValue(new Error("ECONNRESET"));
-    await expect(getOp("social")!.run(makeCtx({ request }), {})).resolves.toBeNull();
+    apiMock.mockRejectedValueOnce(new Error("ECONNRESET"));
+    await expect(getOp("social")!.run(makeCtx(), {})).resolves.toBeNull();
   });
 
   it("returns null on a 401 and keeps the cached copy", async () => {
-    const request = vi.fn().mockRejectedValue(new Error("vtop_session_expired"));
+    apiMock.mockRejectedValueOnce(new Error("vtop_session_expired"));
     const setAtom = vi.fn();
-    await expect(
-      getOp("social")!.run(makeCtx({ request, bridge: { setAtom, getAtom: vi.fn() } }), {})
-    ).resolves.toBeNull();
+    await expect(getOp("social")!.run(makeCtx({ bridge: { setAtom, getAtom: vi.fn() } }), {})).resolves.toBeNull();
     // A failed push must not read as "you have no friends": the error is
     // recorded, but no atom is blanked.
-    expect(setAtom).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ lastError: expect.any(String) })
-    );
+    expect(setAtom).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ lastError: expect.any(String) }));
   });
 
   it("returns null when the server reports failure", async () => {
-    const request = vi.fn().mockResolvedValue({ success: false, error: "vtop_identity_unresolved" });
-    await expect(getOp("social")!.run(makeCtx({ request }), {})).resolves.toBeNull();
+    apiMock.mockResolvedValueOnce({ success: false, error: "vtop_identity_unresolved" });
+    await expect(getOp("social")!.run(makeCtx(), {})).resolves.toBeNull();
   });
 
   it("returns null when the payload has no identity", async () => {
-    const request = vi.fn().mockResolvedValue({ success: true });
-    await expect(getOp("social")!.run(makeCtx({ request }), {})).resolves.toBeNull();
+    apiMock.mockResolvedValueOnce({ success: true });
+    await expect(getOp("social")!.run(makeCtx(), {})).resolves.toBeNull();
   });
 });
 
 describe("social op writes", () => {
   it("pushes identity, peers and grants into atoms", async () => {
     const setAtom = vi.fn();
-    const request = vi.fn().mockResolvedValue(OK_RESPONSE);
-    await getOp("social")!.run(makeCtx({ request, bridge: { setAtom, getAtom: vi.fn() } }), {});
+    await getOp("social")!.run(makeCtx({ bridge: { setAtom, getAtom: vi.fn() } }), {});
     const values = setAtom.mock.calls.map((c) => c[1]);
     expect(values).toContainEqual(OK_RESPONSE.identity);
     expect(values).toContainEqual(OK_RESPONSE.peers);
@@ -143,9 +194,11 @@ describe("social op writes", () => {
 
   it("records the version and a clean error state on success", async () => {
     const setAtom = vi.fn();
-    const request = vi.fn().mockResolvedValue(OK_RESPONSE);
-    await getOp("social")!.run(makeCtx({ request, bridge: { setAtom, getAtom: vi.fn() } }), {});
-    const state = setAtom.mock.calls.map((c) => c[1]).filter((v) => v && "version" in v).at(-1);
+    await getOp("social")!.run(makeCtx({ bridge: { setAtom, getAtom: vi.fn() } }), {});
+    const state = setAtom.mock.calls
+      .map((c) => c[1])
+      .filter((v) => v && "version" in v)
+      .at(-1);
     expect(state.version).toBe(4);
     expect(state.lastError).toBeNull();
     expect(state.lastSyncedAt).toEqual(expect.any(String));

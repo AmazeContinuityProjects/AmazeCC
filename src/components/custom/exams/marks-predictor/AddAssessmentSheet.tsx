@@ -6,7 +6,7 @@ import BottomSheet from "../../shared/BottomSheet";
 import { ToneBadge } from "../../shared/primitives";
 
 const FIELD =
-  "w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-sm font-bold text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500";
+  "w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-sm font-bold text-zinc-900 dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus:border-indigo-500";
 
 /**
  * The add-an-assessment sheet.
@@ -35,9 +35,7 @@ export default function AddAssessmentSheet({
 }) {
   const [title, setTitle] = useState("");
   const [maxMark, setMaxMark] = useState("100");
-  const [weight, setWeight] = useState(
-    remaining > 0 ? String(Math.min(remaining, Math.max(10, 0))) : "0"
-  );
+  const [weight, setWeight] = useState(remaining > 0 ? String(Math.min(remaining, Math.max(10, 0))) : "0");
 
   const maxMarkNum = Math.max(1, Number(maxMark) || 1);
   const weightNum = Number(weight) || 0;
@@ -57,22 +55,17 @@ export default function AddAssessmentSheet({
       subtitle={
         <>
           Published weightages are frozen facts, and the FAT holds 40% of the
-          {componentLabel === "Theory" ? " theory" : " lab"} total — the rest is what a new
-          assessment may claim.
+          {componentLabel === "Theory" ? " theory" : " lab"} total — the rest is what a new assessment may claim.
         </>
       }
-      trailing={
-        <ToneBadge tone={remaining > 0 ? "emerald" : "red"}>
-          {remaining.toFixed(1)} wt left
-        </ToneBadge>
-      }
+      trailing={<ToneBadge tone={remaining > 0 ? "emerald" : "red"}>{remaining.toFixed(1)} wt left</ToneBadge>}
       closeLabel="Close add assessment"
     >
       <div className="space-y-4 pb-2">
         {/* Fields */}
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <label htmlFor="add-title" className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+            <label htmlFor="add-title" className="text-xs font-black uppercase tracking-wider text-zinc-400">
               Name
             </label>
             <input
@@ -86,7 +79,7 @@ export default function AddAssessmentSheet({
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="add-max" className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+            <label htmlFor="add-max" className="text-xs font-black uppercase tracking-wider text-zinc-400">
               Maximum marks
             </label>
             <input
@@ -102,7 +95,7 @@ export default function AddAssessmentSheet({
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="add-weight" className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+            <label htmlFor="add-weight" className="text-xs font-black uppercase tracking-wider text-zinc-400">
               Weightage (% of component)
             </label>
             <input
@@ -117,7 +110,7 @@ export default function AddAssessmentSheet({
               className={`${FIELD} w-28`}
             />
             {!weightValid && weight !== "" ? (
-              <p className="text-[11px] font-bold text-red-500">
+              <p className="text-xs font-bold text-red-500">
                 Only {remaining.toFixed(1)} wt is still open in {componentLabel.toLowerCase()}.
               </p>
             ) : null}
@@ -138,7 +131,7 @@ export default function AddAssessmentSheet({
             });
             onClose();
           }}
-          className={`w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black active:scale-95 transition-all ${
+          className={`w-full flex items-center justify-center gap-2 px-5 py-2.5 min-h-11 rounded-xl text-xs font-black active:scale-95 transition-all ${
             valid
               ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer"
               : "bg-zinc-200 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed"

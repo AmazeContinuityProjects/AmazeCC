@@ -5,6 +5,7 @@ import { ErrorDiagnosticCard as BaseErrorDiagnosticCard, Button } from "@amazeco
 import { Bug, Send, CheckCircle2, AlertTriangle } from "lucide-react";
 import { sendPostHogSupportTicket } from "@/lib/posthog";
 import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
+import { TEXT_CAPTION } from "@/lib/uiTokens";
 
 export interface ErrorDiagnosticCardProps {
   title: string;
@@ -118,7 +119,7 @@ export default function ErrorDiagnosticCard(props: ErrorDiagnosticCardProps) {
                 <div className="text-center py-4 space-y-3">
                   <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
                   <h3 className="font-bold text-base text-zinc-900 dark:text-zinc-100">Bug Report Sent!</h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className={TEXT_CAPTION}>
                     Our team received your crash details and diagnostic logs. We will look into it immediately.
                   </p>
                   <Button
@@ -147,7 +148,7 @@ export default function ErrorDiagnosticCard(props: ErrorDiagnosticCardProps) {
                     </button>
                   </div>
 
-                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300">
+                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 text-xs text-amber-800 dark:text-amber-300">
                     <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
                     <span>
                       Crash details (<strong className="font-mono">{props.error?.name || "Exception"}</strong>) will be
@@ -156,7 +157,7 @@ export default function ErrorDiagnosticCard(props: ErrorDiagnosticCardProps) {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">
                       What were you doing when this happened? (optional)
                     </label>
                     <textarea
@@ -169,7 +170,7 @@ export default function ErrorDiagnosticCard(props: ErrorDiagnosticCardProps) {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">
                       Your Email (for developer updates)
                     </label>
                     <input

@@ -235,13 +235,13 @@ function DefaultHint({
 }) {
   return (
     <div className="flex items-center justify-between gap-2 px-4 pb-3 -mt-2">
-      <span className="text-[11px] font-medium text-muted-foreground">Default: {label}</span>
+      <span className="text-[12px] font-medium text-muted-foreground">Default: {label}</span>
       {changed ? (
         <button
           type="button"
           onClick={onRestore}
           aria-label={`Restore ${restoreName} default`}
-          className="flex items-center gap-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline px-1.5 py-1 rounded cursor-pointer shrink-0"
+          className="flex items-center gap-1 text-[12px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline px-1.5 py-1 rounded cursor-pointer shrink-0"
         >
           <RotateCcw className="w-3 h-3" /> Restore
         </button>
@@ -430,7 +430,7 @@ export function FFCSSettingsModal({
 
   const body = (
     <>
-      <p className="text-xs text-muted-foreground mb-4">
+      <p className="text-pretty text-xs text-muted-foreground mb-4">
         Defaults for new runs — everything stays editable where you use it, and everything stays on this device.
       </p>
 
@@ -556,7 +556,7 @@ export function FFCSSettingsModal({
                         key={priority}
                         className="flex items-center justify-between gap-2 rounded-lg bg-surface-secondary/40 px-3 py-1.5 text-xs"
                       >
-                        <span className="font-medium text-text-heading">
+                        <span className="font-medium text-text-heading tabular-nums">
                           {index + 1}. {RANKING_PRIORITY_LABELS[priority]}
                         </span>
                         <span className="flex">
@@ -891,7 +891,7 @@ export function FFCSSettingsModal({
       </div>
 
       <div className="mt-6 flex items-center justify-between gap-3">
-        <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground leading-relaxed flex-1">
+        <p className="flex items-start gap-1.5 text-[12px] text-muted-foreground leading-relaxed flex-1">
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
           Timetables, friends and settings never leave this browser.
         </p>
@@ -925,7 +925,7 @@ export function FFCSSettingsModal({
           >
             <div className="flex items-center gap-2 mb-1">
               <Settings2 className="w-5 h-5 text-indigo-500" />
-              <h3 className="font-bold text-base text-text-heading">Planner Settings</h3>
+              <h3 className="text-balance font-bold text-base text-text-heading">Planner Settings</h3>
             </div>
             {body}
           </BottomSheet>

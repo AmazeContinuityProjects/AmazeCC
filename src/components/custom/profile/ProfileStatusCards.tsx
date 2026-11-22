@@ -109,7 +109,7 @@ export default function ProfileStatusCards({
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <div
             key={i}
-            className="p-4 sm:p-5 rounded-[24px] border border-zinc-200/80 dark:border-zinc-800/80 card-surface shadow-2xs space-y-3"
+            className="p-4 sm:p-5 rounded-[24px] border border-zinc-200/80 dark:border-zinc-800/80 card-surface space-y-3"
           >
             <div className="flex items-center gap-3">
               <Skeleton className="w-10 h-10 rounded-2xl" />
@@ -124,6 +124,16 @@ export default function ProfileStatusCards({
     );
   }
 
+  // These tiles identify a record, not a state; they share one neutral well and
+  // the single accent. Semantic hues stay on the status badges below.
+  const NEUTRAL_ICON_WELL = "bg-zinc-500/10 border-zinc-500/20 text-info";
+  // Presence is signalled with the accent; an absent record stays neutral.
+  // Green/amber are kept only where the value is genuinely a status.
+  const ACCENT_BADGE = "bg-info/10 text-info border-info/20";
+  const NEUTRAL_BADGE = "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700";
+  const SUCCESS_BADGE = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+  const WARNING_BADGE = "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
+
   const cards = [
     {
       id: "ept",
@@ -131,11 +141,8 @@ export default function ProfileStatusCards({
       label: "EPT Schedule",
       subtitle: "English Proficiency Test",
       value: hasEpt ? `${eptCount} Scheduled Exam${eptCount > 1 ? "s" : ""}` : "No Active Exams",
-      color: hasEpt ? "text-blue-600 dark:text-blue-400" : "text-zinc-500 dark:text-zinc-400",
-      badgeColor: hasEpt
-        ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
-        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700",
-      iconBg: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+      badgeColor: hasEpt ? ACCENT_BADGE : NEUTRAL_BADGE,
+      iconBg: NEUTRAL_ICON_WELL,
     },
     {
       id: "reg",
@@ -143,11 +150,8 @@ export default function ProfileStatusCards({
       label: "Course Registration",
       subtitle: "Course selection schedule",
       value: hasReg ? "Schedule Active" : "Not Scheduled",
-      color: hasReg ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-500 dark:text-zinc-400",
-      badgeColor: hasReg
-        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700",
-      iconBg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+      badgeColor: hasReg ? ACCENT_BADGE : NEUTRAL_BADGE,
+      iconBg: NEUTRAL_ICON_WELL,
     },
     {
       id: "bank",
@@ -155,11 +159,8 @@ export default function ProfileStatusCards({
       label: "Bank Details",
       subtitle: "Fee refund & direct deposit",
       value: hasBank ? "Verified & On File" : "Action Required",
-      color: hasBank ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400",
-      badgeColor: hasBank
-        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-        : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-      iconBg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+      badgeColor: hasBank ? SUCCESS_BADGE : WARNING_BADGE,
+      iconBg: NEUTRAL_ICON_WELL,
     },
     {
       id: "day",
@@ -167,11 +168,8 @@ export default function ProfileStatusCards({
       label: "Dayboarder Info",
       subtitle: "Non-hosteller campus status",
       value: hasDay ? "Profile Verified" : "Not Provided",
-      color: hasDay ? "text-indigo-600 dark:text-indigo-400" : "text-amber-600 dark:text-amber-400",
-      badgeColor: hasDay
-        ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20"
-        : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-      iconBg: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+      badgeColor: hasDay ? SUCCESS_BADGE : WARNING_BADGE,
+      iconBg: NEUTRAL_ICON_WELL,
     },
     {
       id: "apaar",
@@ -179,11 +177,8 @@ export default function ProfileStatusCards({
       label: "APAAR / ABC ID",
       subtitle: "Academic Bank of Credits",
       value: hasApaar ? "Linked to Portal" : "Not Linked",
-      color: hasApaar ? "text-purple-600 dark:text-purple-400" : "text-zinc-500 dark:text-zinc-400",
-      badgeColor: hasApaar
-        ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
-        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700",
-      iconBg: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+      badgeColor: hasApaar ? ACCENT_BADGE : NEUTRAL_BADGE,
+      iconBg: NEUTRAL_ICON_WELL,
     },
     rank
       ? {
@@ -192,9 +187,8 @@ export default function ProfileStatusCards({
           label: "VITEEE Entrance Rank",
           subtitle: "Merit examination rank",
           value: `AIR ${rank}`,
-          color: "text-amber-600 dark:text-amber-400",
-          badgeColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-          iconBg: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+          badgeColor: ACCENT_BADGE,
+          iconBg: NEUTRAL_ICON_WELL,
         }
       : null,
   ].filter(Boolean);
@@ -211,9 +205,9 @@ export default function ProfileStatusCards({
             type="button"
             disabled={!isClickable}
             onClick={() => isClickable && onCardClick(card.id)}
-            className={`p-4 sm:p-5 rounded-[24px] border border-zinc-200/80 dark:border-zinc-800/80 card-surface shadow-2xs transition-all duration-200 flex items-center justify-between gap-3.5 group select-none text-left w-full ${
+            className={`p-4 sm:p-5 rounded-[24px] border border-zinc-200/80 dark:border-zinc-800/80 card-surface transition-all duration-200 flex items-center justify-between gap-3.5 group select-none text-left w-full ${
               isClickable
-                ? "hover:bg-white dark:hover:bg-zinc-900 hover:shadow-md hover:border-indigo-500/40 dark:hover:border-indigo-500/40 cursor-pointer"
+                ? "hover:bg-white dark:hover:bg-zinc-900 hover:border-info/40 dark:hover:border-info/40 cursor-pointer"
                 : "cursor-default"
             }`}
           >
@@ -222,11 +216,11 @@ export default function ProfileStatusCards({
                 <Icon className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-black font-outfit text-zinc-900 dark:text-white truncate">{card.label}</p>
-                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate mt-0.5">{card.subtitle}</p>
+                <p className="text-sm font-bold font-outfit text-zinc-900 dark:text-white line-clamp-2">{card.label}</p>
+                <p className="text-xs text-zinc-400 dark:text-zinc-500 truncate mt-0.5">{card.subtitle}</p>
                 <div className="mt-2">
                   <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold border ${card.badgeColor}`}
+                    className={`inline-flex items-center px-2 py-0.5 rounded-md text-sm font-bold border ${card.badgeColor}`}
                   >
                     {card.value}
                   </span>
@@ -235,7 +229,7 @@ export default function ProfileStatusCards({
             </div>
 
             {isClickable && (
-              <div className="p-1 rounded-lg text-zinc-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0">
+              <div className="p-1 rounded-lg text-zinc-400 group-hover:text-info group-hover:translate-x-0.5 transition-all shrink-0">
                 <ChevronRight className="w-4 h-4" />
               </div>
             )}

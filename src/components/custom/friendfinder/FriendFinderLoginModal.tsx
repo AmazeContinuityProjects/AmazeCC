@@ -1,5 +1,6 @@
 "use client";
 
+import { SPINNER_ICON } from "@/lib/uiTokens";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -224,7 +225,7 @@ export default function FriendFinderLoginModal({
               <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
               <span>Unified Amaze Continuity Projects Sign-In</span>
             </div>
-            <p className="text-slate-600 dark:text-zinc-300 leading-relaxed text-[11px] sm:text-xs">
+            <p className="text-slate-600 dark:text-zinc-300 leading-relaxed text-xs sm:text-xs">
               Logging in here will log you into the rest of <strong>AmazeCC</strong>. Your VTOP session, attendance,
               timetable, and preferences are synchronized and instantly accessible across the Dashboard, FFCS Planner,
               and Event Hub.
@@ -246,7 +247,7 @@ export default function FriendFinderLoginModal({
                   Sync Engine Console
                 </span>
               </div>
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-200/80 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300">
+              <span className="inline-flex items-center gap-1.5 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-slate-200/80 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300">
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${
                     isSubmitting
@@ -271,7 +272,7 @@ export default function FriendFinderLoginModal({
             )}
 
             {/* Sync Engine Log Lines / Status Details */}
-            <div className="rounded-xl bg-white dark:bg-black/40 border border-slate-200/80 dark:border-zinc-800/80 p-2.5 max-h-24 overflow-y-auto font-mono text-[11px] leading-relaxed space-y-1">
+            <div className="rounded-xl bg-white dark:bg-black/40 border border-slate-200/80 dark:border-zinc-800/80 p-2.5 max-h-24 overflow-y-auto font-mono text-xs leading-relaxed space-y-1">
               {session.lines && session.lines.length > 0 ? (
                 session.lines.slice(-4).map((line, idx) => (
                   <div
@@ -291,7 +292,7 @@ export default function FriendFinderLoginModal({
                   </div>
                 ))
               ) : (
-                <div className="text-slate-400 dark:text-zinc-500 flex items-center justify-between text-[10px]">
+                <div className="text-slate-400 dark:text-zinc-500 flex items-center justify-between text-xs">
                   <span>Gateway: vtopcc.vit.ac.in</span>
                   <span>Semester: CH20262705</span>
                 </div>
@@ -381,7 +382,7 @@ export default function FriendFinderLoginModal({
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className={SPINNER_ICON} />
                     <span>Signing in via Sync Engine…</span>
                   </>
                 ) : (
@@ -395,7 +396,7 @@ export default function FriendFinderLoginModal({
           </form>
 
           {/* Privacy Note */}
-          <p className="text-[11px] text-center text-slate-400 dark:text-zinc-500">
+          <p className="text-xs text-center text-slate-400 dark:text-zinc-500">
             Timetable sharing is voluntary and opt-in.{" "}
             <Link
               href="/friend-finder/disclaimer"

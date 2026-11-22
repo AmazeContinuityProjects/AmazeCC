@@ -62,7 +62,7 @@ import {
   downloadModernDossierHtml,
 } from "@/lib/exportTimetable";
 import { downloadElementImage } from "@/lib/imageDownload";
-import { getTimetableSchema } from "@/lib/campusSchema";
+import { FFCS_SCHEMA } from "@/lib/ffcsTimetableData";
 
 import { groupSelectedCourses } from "./FFCS/logic/groupSelectedCourses";
 import { sameSlotFacultyAlternatives, expandCourseHalves } from "@/lib/ffcsGenerate";
@@ -75,7 +75,7 @@ import { processParsedCourses } from "@/lib/ffcsCourseGrouping";
 export { processParsedCourses } from "@/lib/ffcsCourseGrouping";
 import { track } from "@/lib/analytics";
 import { useFFCSSettings } from "@/lib/ffcsSettings";
-import { parseFastCSV } from "@/lib/courseCatalog";
+import { parseFastCSV } from "@/lib/fastCsv";
 import { storage } from "@/lib/storage";
 import { useAtomValue, useSetAtom } from "jotai";
 import { isLoggedInAtom } from "@/store";
@@ -90,6 +90,7 @@ import {
   matchesCatalogFilters,
   type CatalogFilterState,
 } from "@/lib/ffcsCatalogFilters";
+import { ICON_WELL, TEXT_BLOCK, TEXT_CAPTION, TONE_ICON_TILE } from "@/lib/uiTokens";
 import { CourseCatalogFilters } from "./FFCS/components/CourseCatalogFilters";
 import { notifyCatalogCurriculumChanged, useCatalogCurriculum } from "./FFCS/hooks/useCatalogCurriculum";
 import { notifyCatalogGradesChanged, useCatalogGrades } from "./FFCS/hooks/useCatalogGrades";
@@ -235,6 +236,10 @@ export default function FFCSTimetableTab({
       return !combinedFaculties.has(`${code}|${fac}`) && !combinedFaculties.has(`${base}|${fac}`);
     });
 
+    // The usual case is that the report rows already *are* the master courses:
+    // don't allocate a second full-catalog array just to copy the same items.
+    // (Same contents, same order — only the redundant allocation goes away.)
+    if (filteredRaw.length === 0) return masterCourses;
     return [...masterCourses, ...filteredRaw];
   }, [masterCourses, rawParsedCourses]);
   const [semesterId, setSemesterId] = useState<FFCSSemesterId>(DEFAULT_FFCS_SEMESTER);
@@ -992,8 +997,8 @@ export default function FFCSTimetableTab({
     setSlotSearchLabFilter("");
   }, [selectedCourseCode, isGroupingEnabled]);
 
-  const theoryPeriods = (getTimetableSchema().theory as TimetablePeriod[]).filter((p) => !p.lunch);
-  const labPeriods = (getTimetableSchema().lab as TimetablePeriod[]).filter((p) => !p.lunch);
+  const theoryPeriods = (FFCS_SCHEMA.theory as TimetablePeriod[]).filter((p) => !p.lunch);
+  const labPeriods = (FFCS_SCHEMA.lab as TimetablePeriod[]).filter((p) => !p.lunch);
 
   // The one lookup, shared with the module-level copy above and the modal's.
   // The old local version also returned a `pIdx`, which nothing ever read.
@@ -1059,9 +1064,9 @@ export default function FFCSTimetableTab({
       .sort((a, b) => a.code.localeCompare(b.code));
   }, [masterCourses]);
 
-  const uniqueCourseCodes = useMemo(() => {
-    return uniqueCourses;
-  }, [uniqueCourses]);
+  // A view over the one computed list, not a second memo holding the same
+  // reference — the alias used to recompute for no reason on every change.
+  const uniqueCourseCodes = uniqueCourses;
 
   // Slot chips and the curriculum index behind the Search Course sheet.
   const catalogSlotIndex = useMemo(() => buildSlotIndex(masterCourses), [masterCourses]);
@@ -2164,23 +2169,23 @@ export default function FFCSTimetableTab({
                   </h1>
                   {layoutMode === "modern" ? (
                     isLoadingCourses ? (
-                      <span className="mt-1 text-amber-600 dark:text-amber-400 text-[10px] sm:text-xs font-semibold flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                      <span className="mt-1 text-amber-600 dark:text-amber-400 text-[12px] font-semibold flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">
                         <span className="w-2.5 h-2.5 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
                         Loading {activeSemester.shortLabel}...
                       </span>
                     ) : masterCourses.length > 0 ? (
-                      <span className="mt-1 text-emerald-600 dark:text-emerald-400 text-[10px] sm:text-xs font-semibold flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="mt-1 text-emerald-600 dark:text-emerald-400 text-[12px] font-semibold flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse tabular-nums" />
                         {activeSemester.shortLabel} loaded ({masterCourses.length} slots)
                       </span>
                     ) : (
-                      <span className="mt-1 text-rose-600 dark:text-rose-400 text-[10px] sm:text-xs font-semibold flex items-center gap-1.5 px-2 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                      <span className="mt-1 text-rose-600 dark:text-rose-400 text-[12px] font-semibold flex items-center gap-1.5 px-2 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20">
                         <AlertTriangle className="w-3 h-3" />
                         No course report loaded
                       </span>
                     )
                   ) : (
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">
+                    <p className={`text-pretty ${TEXT_CAPTION} font-medium mt-1`}>
                       Plan your semester from the {activeSemester.label.toLowerCase()} slot timetable.
                     </p>
                   )}
@@ -2295,8 +2300,8 @@ export default function FFCSTimetableTab({
                         title={`${activeSemester.label} loaded`}
                       >
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="sm:hidden">{masterCourses.length.toLocaleString()} slots</span>
-                        <span className="hidden sm:inline">
+                        <span className="sm:hidden tabular-nums">{masterCourses.length.toLocaleString()} slots</span>
+                        <span className="hidden sm:inline tabular-nums">
                           {activeSemester.shortLabel} loaded · {masterCourses.length.toLocaleString()} slots
                         </span>
                       </span>
@@ -2359,7 +2364,7 @@ export default function FFCSTimetableTab({
                   dataset is the loaded one so the notice tracks the source. */}
                   {activeSemester.attribution && (
                     <p
-                      className="text-[11px] text-muted-foreground leading-snug min-w-0 basis-full sm:basis-auto sm:flex-1"
+                      className="text-pretty text-[12px] text-muted-foreground leading-snug min-w-0 basis-full sm:basis-auto sm:flex-1"
                       title="Source of the loaded course list"
                     >
                       {activeSemester.attribution}
@@ -2453,11 +2458,11 @@ export default function FFCSTimetableTab({
               <div className="card-surface border border-border-strong rounded-[24px] p-5 sm:p-6 shadow-sm relative overflow-hidden text-text-primary backdrop-blur-xs flex flex-col justify-between gap-5">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-base font-bold text-text-heading flex items-center gap-2">
+                    <h2 className="text-balance text-base font-bold text-text-heading flex items-center gap-2">
                       <LayoutDashboard className="w-4 h-4 text-blue-500" />
                       <span>Timetable Manager</span>
                     </h2>
-                    <span className="text-xs text-muted-foreground bg-surface-secondary/70 border border-border-strong px-2.5 py-1 rounded-full font-medium">
+                    <span className="text-xs text-muted-foreground bg-surface-secondary/70 border border-border-strong px-2.5 py-1 rounded-full font-medium tabular-nums">
                       {activeTimetable?.courses.length || 0} courses
                     </span>
                   </div>
@@ -2477,7 +2482,7 @@ export default function FFCSTimetableTab({
                         <span className="truncate font-semibold">{activeTimetable?.name || "Select Timetable"}</span>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs text-muted-foreground bg-surface-secondary px-2 py-0.5 rounded-md font-medium">
+                        <span className="text-xs text-muted-foreground bg-surface-secondary px-2 py-0.5 rounded-md font-medium tabular-nums">
                           {activeTimetable?.courses.length || 0} courses
                         </span>
                         <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-text-heading transition-transform" />
@@ -2537,7 +2542,7 @@ export default function FFCSTimetableTab({
                         type="text"
                         value={sheetEditValue}
                         onChange={(e) => setSheetEditValue(e.target.value)}
-                        className="flex-1 bg-surface border border-border-strong rounded-xl px-3 py-1.5 text-base sm:text-sm text-text-heading focus:outline-none focus:border-blue-500/50"
+                        className="flex-1 bg-surface border border-border-strong rounded-xl px-3 py-1.5 text-base sm:text-sm text-text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus:border-blue-500/50"
                         placeholder="New name..."
                       />
                       <button
@@ -2556,12 +2561,12 @@ export default function FFCSTimetableTab({
                       onClick={() =>
                         exportTimetableIcal(
                           activeTimetable,
-                          getTimetableSchema(),
+                          FFCS_SCHEMA,
                           new Date().toISOString().split("T")[0],
                           new Date(new Date().setMonth(new Date().getMonth() + 4)).toISOString().split("T")[0],
                         )
                       }
-                      className="flex flex-col items-center justify-center gap-1.5 p-2 bg-surface border border-border-strong hover:border-blue-500/30 rounded-xl hover:bg-surface-secondary/40 transition-all text-[11px] text-text-heading font-medium shadow-2xs group cursor-pointer"
+                      className="flex flex-col items-center justify-center gap-1.5 p-2 bg-surface border border-border-strong hover:border-blue-500/30 rounded-xl hover:bg-surface-secondary/40 transition-all text-[12px] text-text-heading font-medium shadow-2xs group cursor-pointer"
                       title="Export to Apple/Google Calendar"
                     >
                       <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform">
@@ -2574,7 +2579,7 @@ export default function FFCSTimetableTab({
                       type="button"
                       onClick={() => setIsFriendsManagerOpen(true)}
                       data-tour-id="ffcs-social"
-                      className="flex flex-col items-center justify-center gap-1.5 p-2 bg-surface border border-border-strong hover:border-pink-500/30 rounded-xl hover:bg-surface-secondary/40 transition-all text-[11px] text-text-heading font-medium shadow-2xs group cursor-pointer"
+                      className="flex flex-col items-center justify-center gap-1.5 p-2 bg-surface border border-border-strong hover:border-pink-500/30 rounded-xl hover:bg-surface-secondary/40 transition-all text-[12px] text-text-heading font-medium shadow-2xs group cursor-pointer"
                       title="Manage friends and compare schedules"
                     >
                       <div className="p-1.5 rounded-lg bg-pink-500/10 text-pink-500 group-hover:scale-110 transition-transform">
@@ -2586,7 +2591,7 @@ export default function FFCSTimetableTab({
                     <button
                       type="button"
                       onClick={exportTimetables}
-                      className="flex flex-col items-center justify-center gap-1.5 p-2 bg-surface border border-border-strong hover:border-indigo-500/30 rounded-xl hover:bg-surface-secondary/40 transition-all text-[11px] text-text-heading font-medium shadow-2xs group cursor-pointer"
+                      className="flex flex-col items-center justify-center gap-1.5 p-2 bg-surface border border-border-strong hover:border-indigo-500/30 rounded-xl hover:bg-surface-secondary/40 transition-all text-[12px] text-text-heading font-medium shadow-2xs group cursor-pointer"
                       title="Export backup data (JSON)"
                     >
                       <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-500 group-hover:scale-110 transition-transform">
@@ -2596,7 +2601,7 @@ export default function FFCSTimetableTab({
                     </button>
 
                     <label
-                      className="flex flex-col items-center justify-center gap-1.5 p-2 bg-surface border border-border-strong hover:border-emerald-500/30 rounded-xl hover:bg-surface-secondary/40 transition-all text-[11px] text-text-heading font-medium cursor-pointer shadow-2xs group"
+                      className="flex flex-col items-center justify-center gap-1.5 p-2 bg-surface border border-border-strong hover:border-emerald-500/30 rounded-xl hover:bg-surface-secondary/40 transition-all text-[12px] text-text-heading font-medium cursor-pointer shadow-2xs group"
                       title="Import backup data (JSON)"
                     >
                       <input type="file" accept=".json" onChange={importTimetables} className="hidden" />
@@ -2618,7 +2623,7 @@ export default function FFCSTimetableTab({
                       <Lock className="w-4 h-4 group-hover:scale-110 transition-transform" />
                       <span>Target Courses</span>
                       {courseLocks.length > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 bg-purple-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-background shadow-xs">
+                        <span className="absolute -top-1.5 -right-1.5 bg-purple-500 text-white text-[12px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-background shadow-xs">
                           {courseLocks.length}
                         </span>
                       )}
@@ -2673,14 +2678,14 @@ export default function FFCSTimetableTab({
                         title="Leave faculty reviews on vitfac.pages.dev to help other students"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 font-bold text-[11px]">
+                          <span className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 font-bold text-[12px]">
                             ★
                           </span>
-                          <span className="truncate">Reviewed your profs? Leave a review on vitfac!</span>
+                          <span className="truncate tabular-nums">Reviewed your profs? Leave a review on vitfac!</span>
                         </div>
                         <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity" />
                       </a>
-                      <p className="text-[10px] text-muted-foreground/60 px-1 leading-tight">
+                      <p className="text-[12px] text-muted-foreground/60 px-1 leading-tight">
                         Disclaimer: Ratings are sourced from third-party platform{" "}
                         <a
                           href="https://vitfac.pages.dev"
@@ -2701,7 +2706,7 @@ export default function FFCSTimetableTab({
               <div className="card-surface border border-border-strong rounded-[24px] p-5 sm:p-6 shadow-sm relative overflow-hidden text-text-primary backdrop-blur-xs flex flex-col justify-between gap-4">
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h2 className="text-base font-bold text-text-heading flex items-center gap-2 whitespace-nowrap">
+                    <h2 className="text-balance text-base font-bold text-text-heading flex items-center gap-2 whitespace-nowrap">
                       <PlusCircle className="text-blue-500 w-5 h-5" /> Course Selector
                     </h2>
                     <div className="flex items-center gap-1.5 whitespace-nowrap">
@@ -2874,7 +2879,7 @@ export default function FFCSTimetableTab({
                                           {row.SLOT} - {row.FACULTY}
                                         </span>
                                         <span
-                                          className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground shrink-0"
+                                          className="inline-flex items-center gap-1 text-[12px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground shrink-0"
                                           title={facultyCountTitle}
                                         >
                                           <Users className="w-3 h-3 text-muted-foreground/60 shrink-0" />
@@ -2902,7 +2907,7 @@ export default function FFCSTimetableTab({
                               <Search className="w-4 h-4 text-muted-foreground group-hover:text-blue-500 transition-colors shrink-0 ml-2" />
                             </button>
                           </div>
-                          <p className="text-[10px] text-muted-foreground mt-1 ml-1 leading-tight">
+                          <p className="text-pretty text-[12px] text-muted-foreground mt-1 ml-1 leading-tight">
                             * For embedded courses, theory and lab slots taught by the same faculty are automatically
                             linked.
                           </p>
@@ -2941,7 +2946,7 @@ export default function FFCSTimetableTab({
               onExportIcal={() =>
                 exportTimetableIcal(
                   activeTimetable,
-                  getTimetableSchema(),
+                  FFCS_SCHEMA,
                   new Date().toISOString().split("T")[0],
                   new Date(new Date().setMonth(new Date().getMonth() + 4)).toISOString().split("T")[0],
                 )
@@ -3106,7 +3111,7 @@ export default function FFCSTimetableTab({
                             <Printer className="w-3.5 h-3.5 text-indigo-400" />
                             Download HTML (Current Theme)
                           </span>
-                          <span className="text-[10px] bg-indigo-500/20 text-indigo-400 font-bold px-1.5 py-0.5 rounded">
+                          <span className="text-[12px] bg-indigo-500/20 text-indigo-400 font-bold px-1.5 py-0.5 rounded">
                             HTML
                           </span>
                         </button>
@@ -3168,7 +3173,7 @@ export default function FFCSTimetableTab({
                             <FileText className="w-3.5 h-3.5 text-indigo-400" />
                             Preview Dossier (In-App)
                           </span>
-                          <span className="text-[10px] bg-indigo-500/20 text-indigo-400 font-bold px-1.5 py-0.5 rounded">
+                          <span className="text-[12px] bg-indigo-500/20 text-indigo-400 font-bold px-1.5 py-0.5 rounded">
                             VIEW
                           </span>
                         </button>
@@ -3193,7 +3198,7 @@ export default function FFCSTimetableTab({
               >
                 {/* Header for the exported image */}
                 <div className="hidden print:block p-4 mb-4 bg-surface-secondary rounded-xl border border-border-strong text-center">
-                  <h1 className="text-2xl font-bold text-text-heading">{activeTimetable.name}</h1>
+                  <h1 className="text-balance text-2xl font-bold text-text-heading">{activeTimetable.name}</h1>
                   <p className="text-muted-foreground text-sm mt-1">Generated by AmazeCC FFCS Planner</p>
                 </div>
 
@@ -3285,10 +3290,10 @@ export default function FFCSTimetableTab({
                     <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mx-auto">
                       <BookOpen className="w-6 h-6" />
                     </div>
-                    <h3 className="font-bold text-base text-text-heading">
+                    <h3 className="text-balance font-bold text-base text-text-heading">
                       No Courses Added to {activeTimetable.name}
                     </h3>
-                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    <p className="text-pretty text-xs text-muted-foreground max-w-sm mx-auto">
                       Your timetable grid is currently empty. Use the course adder to search courses, verify conflicts,
                       and schedule your semester.
                     </p>
@@ -3398,7 +3403,7 @@ export default function FFCSTimetableTab({
               backdropZIndex={395}
               contentClassName="flex flex-col gap-3"
             >
-              <h3 className="font-bold text-lg text-text-heading flex items-center gap-2">
+              <h3 className="text-balance font-bold text-lg text-text-heading flex items-center gap-2">
                 <Search className="w-5 h-5 text-blue-500" /> Search Course
               </h3>
               <SearchInput
@@ -3429,7 +3434,7 @@ export default function FFCSTimetableTab({
                     </span>
                   </span>
                   <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <span className="text-[11px] text-muted-foreground font-semibold">
+                    <span className="text-[12px] text-muted-foreground font-semibold">
                       {searchLockedOnly ? "Locked Only" : "All Courses"}
                     </span>
                     <Switch
@@ -3500,8 +3505,8 @@ export default function FFCSTimetableTab({
                                 }
                                 className={
                                   curriculumListed
-                                    ? "text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
-                                    : "text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                    ? "text-[12px] font-bold px-1.5 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                                    : "text-[12px] font-bold px-1.5 py-0.5 rounded-md border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
                                 }
                               >
                                 {curriculumCategory}
@@ -3601,10 +3606,10 @@ export default function FFCSTimetableTab({
               backdropZIndex={395}
               contentClassName="flex flex-col gap-3"
             >
-              <h3 className="font-bold text-lg text-text-heading flex items-center gap-2">
+              <h3 className="text-balance font-bold text-lg text-text-heading flex items-center gap-2">
                 <Search className="w-5 h-5 text-blue-500" /> Search Slot & Faculty
               </h3>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-pretty text-xs text-muted-foreground">
                 Search every faculty offering. Conflicting options stay visible but cannot be selected.
               </p>
               <SearchInput
@@ -3630,7 +3635,7 @@ export default function FFCSTimetableTab({
                 ]}
               />
               <div className="grid grid-cols-2 gap-2">
-                <label className="min-w-0 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                <label className="min-w-0 text-[12px] font-bold uppercase tracking-wide text-muted-foreground">
                   Theory slot
                   <select
                     aria-label="Filter by theory slot"
@@ -3649,7 +3654,7 @@ export default function FFCSTimetableTab({
                     ))}
                   </select>
                 </label>
-                <label className="min-w-0 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                <label className="min-w-0 text-[12px] font-bold uppercase tracking-wide text-muted-foreground">
                   Lab slot
                   <select
                     aria-label="Filter by lab slot"
@@ -3758,7 +3763,7 @@ export default function FFCSTimetableTab({
                         </div>
                         {isBlocked && (
                           <div className="w-full">
-                            <span className="text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded uppercase block w-full whitespace-normal break-words leading-tight">
+                            <span className="text-[12px] font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded uppercase block w-full whitespace-normal break-words leading-tight">
                               Clash: {clashError}
                             </span>
                           </div>
@@ -3769,7 +3774,7 @@ export default function FFCSTimetableTab({
                           <FacultyAvatar employeeId={row?.ERP_ID} name={row?.FACULTY} size="xs" tone="blue" />
                           <span className="truncate">{row?.FACULTY}</span>
                           <span
-                            className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground shrink-0"
+                            className="inline-flex items-center gap-1 text-[12px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground shrink-0"
                             title={facultyCountTitle}
                           >
                             <Users className="w-3 h-3 text-muted-foreground/60 shrink-0" />
@@ -3816,7 +3821,9 @@ export default function FFCSTimetableTab({
               backdropZIndex={395}
               contentClassName="flex flex-col gap-3"
             >
-              <h3 className="font-bold text-lg text-text-heading flex items-center gap-2">Select Timetable</h3>
+              <h3 className="text-balance font-bold text-lg text-text-heading flex items-center gap-2">
+                Select Timetable
+              </h3>
               <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-surface-secondary/5 rounded-xl">
                 {timetables.map((t) => {
                   const isActive = t.id === activeTimetableId;
@@ -3841,7 +3848,7 @@ export default function FFCSTimetableTab({
                               if (e.key === "Enter") submitSheetRename(t.id);
                               if (e.key === "Escape") setSheetEditingId(null);
                             }}
-                            className="flex-1 min-w-0 bg-surface border border-border-strong rounded-lg px-3 py-1.5 text-base sm:text-sm text-text-heading focus:outline-none focus:border-blue-500/50"
+                            className="flex-1 min-w-0 bg-surface border border-border-strong rounded-lg px-3 py-1.5 text-base sm:text-sm text-text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus:border-blue-500/50"
                             placeholder="New name..."
                             aria-label="Timetable name"
                           />
@@ -3883,14 +3890,14 @@ export default function FFCSTimetableTab({
                               >
                                 {t.name}
                               </span>
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-xs text-muted-foreground tabular-nums">
                                 {t.courses.length} course{t.courses.length !== 1 ? "s" : ""}
                               </span>
                             </div>
                           </button>
                           <div className="flex items-center gap-1 shrink-0">
                             {isActive && (
-                              <span className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md shrink-0">
+                              <span className="text-[12px] font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md shrink-0">
                                 Active
                               </span>
                             )}
@@ -3926,7 +3933,7 @@ export default function FFCSTimetableTab({
                 )}
               </div>
               <div className="ffcs-bottom-bar sticky bottom-0 z-10 -mx-4 sm:-mx-5 mt-1 px-4 sm:px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-border-strong bg-white/95 dark:bg-zinc-950/95 backdrop-blur flex flex-wrap justify-between items-center gap-2">
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground tabular-nums">
                   {timetables.length} timetable{timetables.length !== 1 ? "s" : ""}
                 </span>
                 <div className="flex items-center gap-2">
@@ -3964,7 +3971,7 @@ export default function FFCSTimetableTab({
               backdropZIndex={495}
               contentClassName="flex flex-col gap-3"
             >
-              <h3 className="font-bold text-lg text-text-heading flex items-center gap-2">
+              <h3 className="text-balance font-bold text-lg text-text-heading flex items-center gap-2">
                 <Search className="w-5 h-5 text-amber-500" /> Select Variant
               </h3>
               <div>
@@ -4075,7 +4082,9 @@ export default function FFCSTimetableTab({
               panelZIndex={600}
               backdropZIndex={595}
             >
-              <h3 className="font-bold text-lg text-text-heading flex items-center gap-2">Advanced Course Linker</h3>
+              <h3 className="text-balance font-bold text-lg text-text-heading flex items-center gap-2">
+                Advanced Course Linker
+              </h3>
 
               <div>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -4106,13 +4115,15 @@ export default function FFCSTimetableTab({
                       console.error("Failed to parse manual links CSV", err);
                     }
                   }}
-                  className="w-full h-64 bg-surface-secondary/30 border border-border-strong rounded-xl p-3 text-sm font-mono text-text-heading focus:outline-none focus:border-amber-500/50 transition-colors"
+                  className="w-full h-64 bg-surface-secondary/30 border border-border-strong rounded-xl p-3 text-sm font-mono text-text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus:border-amber-500/50 transition-colors tabular-nums"
                   placeholder="CODE,TYPE,SLOT,ROOM,FACULTY,LINK_ID&#10;BAMEE201,ETH,D1+TD1,AB2-301,SREEKANTH DONDAPATI,SREEKANTH_LAB_A&#10;BAMEE201,ELA,L5+L6,AB1-006,SREEKANTH DONDAPATI,SREEKANTH_LAB_A"
                 />
 
                 {manualLinks.length > 0 && (
                   <div className="mt-6">
-                    <h4 className="text-sm font-semibold mb-2">Parsed Links Preview ({manualLinks.length})</h4>
+                    <h4 className="text-balance text-sm font-semibold mb-2">
+                      Parsed Links Preview ({manualLinks.length})
+                    </h4>
                     <div className="bg-surface-secondary/30 border border-border-strong rounded-xl overflow-x-auto max-h-48 overflow-y-auto custom-scrollbar">
                       <table className="w-full text-left text-xs">
                         <thead className="bg-surface-secondary/50 border-b border-border-strong sticky top-0">
@@ -4133,7 +4144,7 @@ export default function FFCSTimetableTab({
                               <td className="p-2 truncate max-w-[120px]" title={link.FACULTY}>
                                 {link.FACULTY}
                               </td>
-                              <td className="p-2 font-mono text-amber-500/90">{link.LINK_ID}</td>
+                              <td className="p-2 font-mono text-amber-500/90 tabular-nums">{link.LINK_ID}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -4231,7 +4242,7 @@ export default function FFCSTimetableTab({
                   }}
                   className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400">
+                  <span className={`${ICON_WELL} ${TONE_ICON_TILE.indigo}`}>
                     <ExternalLink className="w-4 h-4" />
                   </span>
                   <ListRowText
@@ -4249,7 +4260,7 @@ export default function FFCSTimetableTab({
                   }}
                   className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-violet-500/10 text-violet-600 border-violet-500/20 dark:text-violet-400">
+                  <span className={`${ICON_WELL} ${TONE_ICON_TILE.violet}`}>
                     <Code2 className="w-4 h-4" />
                   </span>
                   <ListRowText title="Share as JSON" titleTag="span" subtitle="Share the selected timetable data." />
@@ -4263,7 +4274,7 @@ export default function FFCSTimetableTab({
                   }}
                   className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400">
+                  <span className={`${ICON_WELL} ${TONE_ICON_TILE.amber}`}>
                     <Image className="w-4 h-4" />
                   </span>
                   <ListRowText title="Share as JPG" titleTag="span" subtitle="Download a timetable image to send." />
@@ -4277,7 +4288,7 @@ export default function FFCSTimetableTab({
                   }}
                   className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400">
+                  <span className={`${ICON_WELL} ${TONE_ICON_TILE.emerald}`}>
                     <Image className="w-4 h-4" />
                   </span>
                   <ListRowText
@@ -4295,7 +4306,7 @@ export default function FFCSTimetableTab({
                   }}
                   className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-sky-500/10 text-sky-600 border-sky-500/20 dark:text-sky-400">
+                  <span className={`${ICON_WELL} ${TONE_ICON_TILE.sky}`}>
                     <FileText className="w-4 h-4" />
                   </span>
                   <ListRowText
@@ -4312,7 +4323,9 @@ export default function FFCSTimetableTab({
                   }}
                   className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60"
                 >
-                  <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-fuchsia-500/10 text-fuchsia-600 border-fuchsia-500/20 dark:text-fuchsia-400">
+                  <span
+                    className={`${ICON_WELL} bg-fuchsia-500/10 text-fuchsia-600 border-fuchsia-500/20 dark:text-fuchsia-400`}
+                  >
                     <Megaphone className="w-4 h-4" />
                   </span>
                   <ListRowText
@@ -4339,7 +4352,7 @@ export default function FFCSTimetableTab({
                         <BadgeCheck className="w-4 h-4" />
                       </span>
                     )}
-                    <span className="min-w-0 flex-1">
+                    <span className={TEXT_BLOCK}>
                       <span className="block text-sm font-bold text-text-heading truncate">{shareAccount.name}</span>
                       <span className="block text-xs text-muted-foreground mt-0.5 truncate">
                         {shareAccount.username ? `Signed in as ${shareAccount.username}` : "Signed in to AmazeCC"}
@@ -4355,7 +4368,7 @@ export default function FFCSTimetableTab({
                     <span className="w-10 h-10 rounded-2xl border border-indigo-500/20 bg-surface flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
                       <LogIn className="w-4 h-4" />
                     </span>
-                    <span className="min-w-0 flex-1">
+                    <span className={TEXT_BLOCK}>
                       <span className="block text-sm font-bold text-text-heading">Sign in to AmazeCC</span>
                       <span className="block text-xs text-muted-foreground mt-0.5">
                         Save your plans and unlock more features.
@@ -4380,7 +4393,7 @@ export default function FFCSTimetableTab({
           >
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3 rounded-2xl border border-border-strong bg-surface-secondary/50 p-4">
-                <span className="min-w-0 flex-1">
+                <span className={TEXT_BLOCK}>
                   <span className="block text-sm font-bold text-text-heading">Integrate into the planner</span>
                   <span className="block text-xs text-muted-foreground mt-0.5">
                     {settings.integrateCurriculumAndGrades
@@ -4425,7 +4438,7 @@ export default function FFCSTimetableTab({
                     />
                   </div>
                   <div className="flex items-center gap-2.5 px-3 py-2.5">
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
+                    <span className="text-[12px] font-bold px-1.5 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
                       Curriculum
                     </span>
                     <ListRowText
@@ -4446,7 +4459,7 @@ export default function FFCSTimetableTab({
                 <RefreshCw className={`w-4 h-4 ${isIntegrating ? "animate-spin" : ""}`} />
                 {isIntegrating ? "Integrating…" : "Integrate now"}
               </button>
-              <p className="text-[11px] text-muted-foreground px-1">
+              <p className="text-pretty text-[12px] text-muted-foreground px-1">
                 Fetches both payloads from VTOP in one go and refreshes every open picker. The planner also fetches them
                 on its own when they are missing — this button is for an explicit refresh.
               </p>
@@ -4474,7 +4487,7 @@ export default function FFCSTimetableTab({
                 }}
                 className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50"
               >
-                <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400">
+                <span className={`${ICON_WELL} ${TONE_ICON_TILE.indigo}`}>
                   <Code2 className="w-4 h-4" />
                 </span>
                 <ListRowText
@@ -4492,7 +4505,7 @@ export default function FFCSTimetableTab({
                 }}
                 className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400">
+                <span className={`${ICON_WELL} ${TONE_ICON_TILE.emerald}`}>
                   <Share2 className="w-4 h-4" />
                 </span>
                 <ListRowText
@@ -4514,7 +4527,9 @@ export default function FFCSTimetableTab({
                 }}
                 className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-fuchsia-500/10 text-fuchsia-600 border-fuchsia-500/20 dark:text-fuchsia-400">
+                <span
+                  className={`${ICON_WELL} bg-fuchsia-500/10 text-fuchsia-600 border-fuchsia-500/20 dark:text-fuchsia-400`}
+                >
                   <Share2 className="w-4 h-4" />
                 </span>
                 <ListRowText
@@ -4536,7 +4551,7 @@ export default function FFCSTimetableTab({
                 }}
                 className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400">
+                <span className={`${ICON_WELL} ${TONE_ICON_TILE.amber}`}>
                   <Share2 className="w-4 h-4" />
                 </span>
                 <ListRowText
@@ -4582,7 +4597,7 @@ export default function FFCSTimetableTab({
                       }`}
                     >
                       <span
-                        className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${
+                        className={`${ICON_WELL} ${
                           isActive
                             ? "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20"
                             : "bg-surface-secondary text-muted-foreground border-border-strong"
@@ -4604,7 +4619,7 @@ export default function FFCSTimetableTab({
                   onClick={() => setIsCourseImportSheetOpen(true)}
                   className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-500"
                 >
-                  <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-surface-secondary text-muted-foreground border-border-strong">
+                  <span className={`${ICON_WELL} bg-surface-secondary text-muted-foreground border-border-strong`}>
                     <Upload className="w-4 h-4" />
                   </span>
                   <ListRowText

@@ -1,5 +1,6 @@
 "use client";
 
+import { TEXT_BLOCK } from "@/lib/uiTokens";
 import React, { useState } from "react";
 import { AlertTriangle, Lock } from "lucide-react";
 import BottomSheet from "../../shared/BottomSheet";
@@ -7,7 +8,7 @@ import { ToneBadge } from "../../shared/primitives";
 import { weightFreezeFor, type WeightFreeze } from "./useCoursePredictionScope";
 
 const FIELD =
-  "w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-sm font-bold text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500";
+  "w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-sm font-bold text-zinc-900 dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus:border-indigo-500";
 const PCT_CHIPS = [100, 80, 50];
 
 interface SheetAssessment {
@@ -114,7 +115,7 @@ export default function AssessmentMarkSheet({
             <AlertTriangle
               className={`w-4 h-4 shrink-0 mt-0.5 ${locked ? "text-amber-600 dark:text-amber-400" : "text-indigo-500"}`}
             />
-            <div className="min-w-0 flex-1">
+            <div className={TEXT_BLOCK}>
               <p className="text-xs font-bold text-zinc-800 dark:text-zinc-100 leading-relaxed">
                 {isFat && !posted ? (
                   <>The FAT is frozen at 0 — it can&apos;t be filled in. A mark only arrives here when VTOP posts it.</>
@@ -135,7 +136,7 @@ export default function AssessmentMarkSheet({
               <button
                 type="button"
                 onClick={() => setOverride(true)}
-                className="shrink-0 px-2.5 py-1.5 rounded-lg border border-amber-500/40 bg-white dark:bg-zinc-900 text-[11px] font-black text-amber-700 dark:text-amber-400 cursor-pointer hover:bg-amber-500/10 transition-colors"
+                className="shrink-0 px-2.5 py-1.5 min-h-11 rounded-lg border border-amber-500/40 bg-white dark:bg-zinc-900 text-xs font-black text-amber-700 dark:text-amber-400 cursor-pointer hover:bg-amber-500/10 active:bg-amber-500/20 transition-colors"
               >
                 Edit anyway
               </button>
@@ -172,7 +173,7 @@ export default function AssessmentMarkSheet({
                   type="button"
                   disabled={locked}
                   onClick={() => onUpdateScoredMark(asm.id, Math.round((pct / 100) * maxMark * 10) / 10, true)}
-                  className="px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-indigo-500/10 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 text-[11px] font-black transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-zinc-100 dark:disabled:hover:bg-zinc-900"
+                  className="px-2.5 py-1.5 min-h-11 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-indigo-500/10 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 active:bg-indigo-500/20 text-xs font-black transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-zinc-100 dark:disabled:hover:bg-zinc-900"
                 >
                   {pct}%
                 </button>
@@ -200,14 +201,14 @@ export default function AssessmentMarkSheet({
               }
               className="m3-range w-full"
             />
-            <span className="text-xs font-bold text-zinc-500 w-12 text-right shrink-0">
+            <span className="text-xs tabular-nums font-bold text-zinc-500 w-12 text-right shrink-0">
               {asm.scoredMark === null ? "0%" : `${asm.percentage.toFixed(0)}%`}
             </span>
           </div>
         </div>
 
         {/* Weight impact */}
-        <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800/60 text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
+        <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800/60 text-xs font-bold text-zinc-500 dark:text-zinc-400">
           <span>
             Earned <strong className="text-emerald-600 dark:text-emerald-400">{asm.scoredWeight.toFixed(1)}</strong> wt
           </span>

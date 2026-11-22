@@ -140,10 +140,10 @@ export interface GradeBadge {
  * badge means the same thing in both. Mirrors the curriculum badge styling.
  */
 export const GRADE_BADGE_TONE_CLASSES: Record<GradeBadge["tone"], string> = {
-  red: "text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-red-500/30 bg-red-500/10 text-red-500",
+  red: "text-xs font-bold px-1.5 py-0.5 rounded-md border border-red-500/30 bg-red-500/10 text-red-500",
   amber:
-    "text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  blue: "text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-blue-500/30 bg-blue-500/10 text-blue-500",
+    "text-xs font-bold px-1.5 py-0.5 rounded-md border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  blue: "text-xs font-bold px-1.5 py-0.5 rounded-md border border-blue-500/30 bg-blue-500/10 text-blue-500",
 };
 
 /**

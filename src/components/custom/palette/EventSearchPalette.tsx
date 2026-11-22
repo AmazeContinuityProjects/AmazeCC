@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { api } from "@/lib/sync-engine";
 import { eventhubImageUrl } from "@/lib/eventhub";
 import { getTypedStorageItem } from "@/lib/storage";
+import { TEXT_BLOCK } from "@/lib/uiTokens";
 
 interface EventItem {
   title?: string;
@@ -385,7 +386,7 @@ export default function EventSearchPalette() {
   return (
     <div className="flex flex-col h-full min-h-[320px]" onKeyDown={handleKeyDown}>
       {/* Search header */}
-      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-gray-200/60  dark:border-gray-800/30 bg-gradient-to-r from-fuchsia-500/[0.03] to-transparent">
+      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-gray-200/60  dark:border-gray-800/30 bg-gradient-to-r from-fuchsia-500/[0.03] to-transparent focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring">
         <div className="p-1.5 rounded-xl bg-gradient-to-br from-fuchsia-500/15 to-pink-500/15 shadow-sm">
           <Search className="w-4 h-4 text-fuchsia-600  dark:text-fuchsia-400" />
         </div>
@@ -408,7 +409,7 @@ export default function EventSearchPalette() {
             <X className="w-4 h-4" />
           </button>
         ) : (
-          <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-gray-400  dark:text-gray-500 bg-gray-100  dark:bg-gray-900/60 rounded-lg border border-gray-200/60 dark:border-gray-700/30">
+          <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-gray-400  dark:text-gray-500 bg-gray-100  dark:bg-gray-900/60 rounded-lg border border-gray-200/60 dark:border-gray-700/30">
             {allEvents.length} events
           </kbd>
         )}
@@ -436,7 +437,7 @@ export default function EventSearchPalette() {
             {tab.label}
             <span
               className={cn(
-                "ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold",
+                "ml-1.5 px-1.5 py-0.5 rounded text-xs font-bold",
                 activeTab === tab.id
                   ? "bg-fuchsia-200/50 dark:bg-fuchsia-800/30 text-fuchsia-600 dark:text-fuchsia-300"
                   : "bg-gray-200/50 dark:bg-gray-700/30 text-gray-500 dark:text-gray-400",
@@ -447,7 +448,7 @@ export default function EventSearchPalette() {
           </button>
         ))}
         {!query && (
-          <kbd className="ml-auto hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[10px] text-gray-400  dark:text-gray-500">
+          <kbd className="ml-auto hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-400  dark:text-gray-500">
             ← → tabs
           </kbd>
         )}
@@ -468,9 +469,7 @@ export default function EventSearchPalette() {
           >
             <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
             Back to results
-            <kbd className="ml-1 px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-900 text-[10px] text-gray-400">
-              esc
-            </kbd>
+            <kbd className="ml-1 px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-900 text-xs text-gray-400">esc</kbd>
           </button>
 
           {previewLoading && (
@@ -506,7 +505,7 @@ export default function EventSearchPalette() {
                   <CalendarDays className="w-8 h-8 text-gray-400  dark:text-gray-500/60" />
                 </div>
               )}
-              <div className="min-w-0 flex-1 space-y-2">
+              <div className={`${TEXT_BLOCK} space-y-2`}>
                 <div className="flex items-center gap-3">
                   {!posterSrc && !selectedEvent.eid && (
                     <div
@@ -520,13 +519,13 @@ export default function EventSearchPalette() {
                       <CalendarDays className="w-5 h-5" />
                     </div>
                   )}
-                  <div className="min-w-0 flex-1">
+                  <div className={TEXT_BLOCK}>
                     <p className="text-sm font-bold text-gray-900  dark:text-white truncate">
                       {getTitle(selectedEvent)}
                     </p>
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded text-[10px] font-semibold",
+                        "inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded text-xs font-semibold",
                         selectedEvent._source === "registered"
                           ? "bg-emerald-100 text-emerald-800   dark:bg-emerald-900/80 dark:text-emerald-300"
                           : "bg-fuchsia-100 text-fuchsia-800   dark:bg-fuchsia-900/80 dark:text-fuchsia-300",
@@ -548,7 +547,7 @@ export default function EventSearchPalette() {
             <div className="flex flex-wrap gap-1.5">
               {(selectedEvent.date || selectedEvent.time) && (
                 <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.violet}`}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border ${badge.violet}`}
                 >
                   <CalendarDays className="w-3 h-3" />
                   {selectedEvent.date}
@@ -557,7 +556,7 @@ export default function EventSearchPalette() {
               )}
               {(selectedEvent.venue || selectedEvent.location) && (
                 <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.rose}`}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border ${badge.rose}`}
                 >
                   <MapPin className="w-3 h-3" />
                   {selectedEvent.venue || selectedEvent.location}
@@ -566,7 +565,7 @@ export default function EventSearchPalette() {
               {(selectedEvent.price || selectedEvent.paymentStatus) && (
                 <span
                   className={cn(
-                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border",
+                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border",
                     (selectedEvent.paymentStatus || "").toLowerCase().includes("paid") ? badge.amber : badge.emerald,
                   )}
                 >
@@ -576,14 +575,14 @@ export default function EventSearchPalette() {
               )}
               {selectedEvent.type && (
                 <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.indigo}`}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border ${badge.indigo}`}
                 >
                   {selectedEvent.type}
                 </span>
               )}
               {selectedEvent.eligibility && !selectedEvent.type && (
                 <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.gray}`}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border ${badge.gray}`}
                 >
                   {selectedEvent.eligibility}
                 </span>
@@ -592,7 +591,7 @@ export default function EventSearchPalette() {
 
             {(previewData?.description || selectedEvent.description) && (
               <div className="px-4 py-3 rounded-xl bg-gray-50/80  dark:bg-gray-900/40 border border-gray-200/50  dark:border-gray-800/30">
-                <p className="text-[10px] font-semibold text-gray-500  dark:text-gray-400 mb-1.5 uppercase tracking-wider">
+                <p className="text-xs font-semibold text-gray-500  dark:text-gray-400 mb-1.5 uppercase tracking-wider">
                   Description
                 </p>
                 <p className="text-xs font-medium text-gray-900  dark:text-white leading-relaxed">
@@ -603,7 +602,7 @@ export default function EventSearchPalette() {
 
             {selectedEvent.eid && (
               <div
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.gray}`}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border ${badge.gray}`}
               >
                 Event ID: {selectedEvent.eid}
               </div>
@@ -615,10 +614,10 @@ export default function EventSearchPalette() {
         <div ref={listRef} className="flex-1 overflow-y-auto p-2 space-y-0.5 scroll-smooth">
           {query && (
             <div className="flex items-center justify-between px-3 py-1.5">
-              <p className="text-[11px] font-medium text-gray-400  dark:text-gray-500">
+              <p className="text-xs font-medium text-gray-400  dark:text-gray-500">
                 {results.length} result{results.length !== 1 ? "s" : ""}
               </p>
-              <kbd className="px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-900/60 text-[10px] text-gray-400 dark:text-gray-500">
+              <kbd className="px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-900/60 text-xs text-gray-400 dark:text-gray-500">
                 ↑↓ navigate · enter to view
               </kbd>
             </div>
@@ -676,7 +675,7 @@ export default function EventSearchPalette() {
                 >
                   {getTitle(ev)}
                 </p>
-                <p className="text-[11px] text-gray-400  dark:text-gray-500 truncate mt-0.5">
+                <p className="text-xs text-gray-400  dark:text-gray-500 truncate mt-0.5">
                   {ev.date || ""}
                   {ev.date && (ev.venue || ev.location) ? " · " : ""}
                   {ev.venue || ev.location || ""}
@@ -686,7 +685,7 @@ export default function EventSearchPalette() {
                 {ev._source && (
                   <span
                     className={cn(
-                      "px-1.5 py-0.5 rounded text-[9px] font-bold",
+                      "px-1.5 py-0.5 rounded text-xs font-bold",
                       ev._source === "registered"
                         ? "bg-emerald-100 text-emerald-800   dark:bg-emerald-900/80 dark:text-emerald-300"
                         : "bg-fuchsia-100 text-fuchsia-800   dark:bg-fuchsia-900/80 dark:text-fuchsia-300",
@@ -697,7 +696,7 @@ export default function EventSearchPalette() {
                 )}
                 {ev.price && (
                   <span
-                    className={`inline-flex items-center justify-center min-w-[2.5rem] h-7 rounded-lg text-[10px] font-bold border ${badge.gray}`}
+                    className={`inline-flex items-center justify-center min-w-[2.5rem] h-7 rounded-lg text-xs font-bold border ${badge.gray}`}
                   >
                     {ev.price}
                   </span>

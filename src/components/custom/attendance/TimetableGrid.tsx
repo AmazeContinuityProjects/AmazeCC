@@ -3,7 +3,8 @@
 /**
  * The attendance timetable sheet.
  *
- * Derives a `theoryPeriods` / `labPeriods` skeleton out of `config.json` and
+ * Derives a `theoryPeriods` / `labPeriods` skeleton out of the unified timetable's
+ * generated flat slot map and
  * hands it to the common `TimetableView`, which decides between the vertical
  * mobile heatmap and the full horizontal grid. This file owns only the two
  * things that are genuinely attendance-specific: the VTOP-to-courses conversion
@@ -31,7 +32,7 @@ import type { AddedCourse } from "@amazecontinuityprojects/amazeui";
 import type { NormalizedCourse } from "@/types/course";
 import { normalizeCourse, normalizeSlots } from "@/lib/courseNormalizer";
 import { unifiedAcademicsAtom } from "@/store";
-import config from "../../../../config.json";
+import { DAY_ORDER, SLOT_MAP } from "@/lib/generated/timetable";
 import { exportableHtml, openTimetablePrintablePage } from "@/lib/exportTimetable";
 import { downloadElementImage } from "@/lib/imageDownload";
 import { useTheme } from "next-themes";
@@ -49,7 +50,8 @@ import { buildPeriodSkeleton } from "../timetable/periodSkeleton";
  */
 const SelectedCoursesList = dynamic(() => import("../exams/FFCS/components/SelectedCoursesList"), { ssr: false });
 
-const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+/** Day order from the unified timetable vocabulary. */
+const DAYS = DAY_ORDER as readonly string[];
 
 /**
  * One colour per course code, assigned on first appearance and then memoised in
@@ -107,13 +109,26 @@ export default function TimetableVtop({ attendance }: { attendance?: (Normalized
 
   const { theme, resolvedTheme } = useTheme();
   const currentTheme = resolvedTheme || theme || "light";
-  const rootStyles = typeof window === "undefined" ? null : getComputedStyle(document.documentElement);
-  const themeBgColor = rootStyles?.getPropertyValue("--background").trim() || "#ffffff";
-  const themeTextColor = rootStyles?.getPropertyValue("--text-primary").trim() || "#111827";
-  const themeHtmlClass =
-    typeof document === "undefined" ? currentTheme : document.documentElement.className || currentTheme;
 
-  const slotMap = useMemo(() => config.slotMap || {}, []);
+  /**
+   * The export palette is read from the document root, which changes with the
+   * resolved theme. Resolve it in one memo instead of on every render — reading
+   * `getComputedStyle` during render forces a style recalculation on a component
+   * that re-renders for unrelated state (the download flag, the atom value).
+   */
+  const { themeBgColor, themeTextColor, themeHtmlClass } = useMemo(() => {
+    if (typeof document === "undefined") {
+      return { themeBgColor: "#ffffff", themeTextColor: "#111827", themeHtmlClass: currentTheme };
+    }
+    const rootStyles = getComputedStyle(document.documentElement);
+    return {
+      themeBgColor: rootStyles.getPropertyValue("--background").trim() || "#ffffff",
+      themeTextColor: rootStyles.getPropertyValue("--text-primary").trim() || "#111827",
+      themeHtmlClass: document.documentElement.className || currentTheme,
+    };
+  }, [currentTheme]);
+
+  const slotMap = useMemo(() => SLOT_MAP, []);
 
   const handlePrint = useCallback(() => {
     if (!captureRef.current) return;
@@ -155,7 +170,7 @@ export default function TimetableVtop({ attendance }: { attendance?: (Normalized
    * ---------------------------------------------------------------- */
 
   const { theoryPeriods, labPeriods } = useMemo(() => {
-    // The one projection of `config.json` onto a period skeleton. The social
+    // The one projection of the generated slot map onto a period skeleton. The social
     // grid draws the same week through the same skeleton, so it lives in one
     // place — see `timetable/periodSkeleton.ts`.
     const skeleton = buildPeriodSkeleton(slotMap);
@@ -205,10 +220,12 @@ export default function TimetableVtop({ attendance }: { attendance?: (Normalized
   return (
     <div className="flex w-full flex-col gap-4">
       {/* Top Header */}
-      <div className="flex flex-col justify-between gap-3 border-b border-gray-150 pb-3 sm:flex-row sm:items-center dark:border-gray-800">
+      <div className="flex flex-col justify-between gap-3 border-b border-gray-100 pb-3 sm:flex-row sm:items-center dark:border-gray-800">
         <div>
-          <h2 className="font-outfit text-lg font-black text-gray-900 dark:text-gray-100">Class Schedule</h2>
-          <p className="text-[11px] text-gray-400 dark:text-gray-500">
+          <h2 className="font-outfit text-xl font-black text-gray-900 dark:text-gray-100 leading-[1.3] text-balance">
+            Class Schedule
+          </h2>
+          <p className="text-sm text-gray-400 dark:text-gray-500">
             View course slots, venues, and export the full grid.
           </p>
         </div>
@@ -217,7 +234,7 @@ export default function TimetableVtop({ attendance }: { attendance?: (Normalized
           <button
             onClick={handleDownloadImage}
             disabled={isDownloading}
-            className="cursor-pointer rounded-lg bg-emerald-600 p-2 text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+            className="cursor-pointer relative hit-expand rounded-lg bg-emerald-600 p-2.5 text-white transition-colors hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50"
             title="Download PNG"
           >
             <Download className="h-4 w-4" />
@@ -225,7 +242,7 @@ export default function TimetableVtop({ attendance }: { attendance?: (Normalized
           <button
             onClick={handlePrint}
             disabled={isDownloading}
-            className="cursor-pointer rounded-lg bg-indigo-600 p-2 text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+            className="cursor-pointer relative hit-expand rounded-lg bg-indigo-600 p-2.5 text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-50"
             title="Print / PDF"
           >
             <Printer className="h-4 w-4" />

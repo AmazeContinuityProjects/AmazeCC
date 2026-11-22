@@ -136,7 +136,7 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
             ]}
           />
 
-          <p className="text-sm text-muted-foreground">
+          <p className="text-pretty text-sm text-muted-foreground">
             Select the courses you intend to take. Both the manual planner and auto-generator will filter results based
             on your target courses.
           </p>

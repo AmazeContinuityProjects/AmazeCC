@@ -42,7 +42,17 @@ export interface CourseCatalogFiltersProps {
   curriculumSyncing?: boolean;
 }
 
-const CHIP_BASE = "text-[10px] font-bold px-2 py-1 rounded-full border transition-colors cursor-pointer";
+// Chips are visually tiny by design (8px inner-chip step), so on a phone their
+// real tap area comes from `hit-expand`; every chip also gets a visible focus
+// ring and a press response instead of hover being its only affordance.
+// Local (not a DS token): the /50 ring is specific to these chips, and no
+// canonical FILTER_CHIP token exists. Shared by the chip base and the two
+// header actions so the recipe is written once in this file.
+const CHIP_FOCUS_RING = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50";
+
+const CHIP_BASE =
+  "relative hit-expand text-[12px] font-bold px-2 py-1 rounded-full border transition-colors cursor-pointer active:scale-[0.97] " +
+  CHIP_FOCUS_RING;
 
 const chipClass = (active: boolean, activeClass: string): string =>
   active
@@ -91,7 +101,7 @@ export function CourseCatalogFilters({
           type="button"
           aria-expanded={slotsOpen}
           onClick={() => setSlotsOpen((open) => !open)}
-          className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors cursor-pointer ${
+          className={`relative hit-expand flex items-center gap-1.5 text-[12px] font-bold px-2.5 py-1 rounded-full border transition-colors cursor-pointer active:scale-[0.97] ${CHIP_FOCUS_RING} ${
             slots.length > 0
               ? "bg-indigo-500/15 border-indigo-500/40 text-indigo-500"
               : "bg-surface border-border-strong text-muted-foreground hover:text-text-heading"
@@ -105,7 +115,7 @@ export function CourseCatalogFilters({
           <button
             type="button"
             onClick={() => onSlotsChange([])}
-            className="text-[10px] font-bold text-indigo-500 hover:underline cursor-pointer"
+            className={`relative hit-expand text-[12px] font-bold text-indigo-500 hover:underline active:text-indigo-400 cursor-pointer ${CHIP_FOCUS_RING} rounded`}
           >
             Clear slots
           </button>
@@ -116,7 +126,7 @@ export function CourseCatalogFilters({
             type="button"
             onClick={onSyncCurriculum}
             disabled={curriculumSyncing}
-            className="ml-auto flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 disabled:opacity-60 cursor-pointer disabled:cursor-wait"
+            className="ml-auto relative hit-expand flex items-center gap-1.5 text-[12px] font-bold px-2.5 py-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 disabled:opacity-60 cursor-pointer disabled:cursor-wait active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
           >
             <RefreshCw className={`w-3 h-3 ${curriculumSyncing ? "animate-spin" : ""}`} />
             {curriculumSyncing ? "Syncing…" : "Sync curriculum"}
@@ -126,7 +136,7 @@ export function CourseCatalogFilters({
         {curriculum && (
           <label className="ml-auto flex items-center gap-2 cursor-pointer select-none">
             <GraduationCap className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-            <span className="text-[11px] font-semibold text-muted-foreground">My Curriculum</span>
+            <span className="text-[12px] font-semibold text-muted-foreground">My Curriculum</span>
             <Switch
               checked={curriculumOnly}
               onCheckedChange={onCurriculumOnlyChange}
@@ -143,13 +153,13 @@ export function CourseCatalogFilters({
             <>
               {chips.theory.length > 0 && (
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Theory</span>
+                  <span className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">Theory</span>
                   <div className="flex flex-wrap gap-1.5">{chips.theory.map(slotChip)}</div>
                 </div>
               )}
               {chips.lab.length > 0 && (
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Lab</span>
+                  <span className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">Lab</span>
                   <div className="flex flex-wrap gap-1.5">{chips.lab.map(slotChip)}</div>
                 </div>
               )}
@@ -162,7 +172,7 @@ export function CourseCatalogFilters({
 
       {curriculum && curriculumOnly && curriculum.categories.length > 0 && (
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-2.5 flex flex-wrap items-center gap-1.5">
-          <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mr-1">
+          <span className="text-[12px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mr-1">
             Category
           </span>
           <button

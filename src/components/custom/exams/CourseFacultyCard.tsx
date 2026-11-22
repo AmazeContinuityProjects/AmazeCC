@@ -1,5 +1,6 @@
 "use client";
 
+import { TEXT_BLOCK } from "@/lib/uiTokens";
 import React, { useState, useEffect, useMemo } from "react";
 import { Mail, Phone, Copy, Check, CalendarDays, Star, Info, ChevronDown, ChevronUp } from "lucide-react";
 import { KeyValue, ToneBadge } from "../shared/primitives";
@@ -135,7 +136,7 @@ export default function CourseFacultyCard({
         </div>
 
         {/* Center: Faculty Identity, Designation, Department, Venue & Slot */}
-        <div className="min-w-0 flex-1 space-y-1.5">
+        <div className={`${TEXT_BLOCK} space-y-1.5`}>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <h4
               title={cleanName || "Faculty Assigned"}
@@ -250,7 +251,7 @@ export default function CourseFacultyCard({
           )}
 
           {loadingProfile && (
-            <p className="text-[11px] text-text-muted animate-pulse px-1">Checking faculty directory profile…</p>
+            <p className="text-xs text-text-muted animate-pulse px-1">Checking faculty directory profile…</p>
           )}
         </div>
       )}

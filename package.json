@@ -5,13 +5,15 @@
   "license": "GPL-3.0-only",
   "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
   "scripts": {
-    "pretest": "node scripts/generate-build-info.js",
+    "pretest": "node scripts/generate-build-info.js && node scripts/generate-timetable.mjs --check",
     "test": "vitest run",
     "predev": "node scripts/generate-build-info.js",
     "dev": "next dev --webpack --experimental-https -p 3001",
     "dev:http": "next dev --webpack -p 3001",
-    "prebuild": "node scripts/generate-build-info.js",
+    "prebuild": "node scripts/generate-build-info.js && node scripts/generate-timetable.mjs --check",
     "build": "next build --webpack && node scripts/prune-sw-precache.js",
+    "timetable:generate": "node scripts/generate-timetable.mjs",
+    "timetable:check": "node scripts/generate-timetable.mjs --check",
     "start": "pnpm dlx serve@latest out -p 3001 -s",
     "serve": "pnpm dlx serve@latest out -p 3001 -s",
     "lint": "eslint",
@@ -21,7 +23,7 @@
     "scanner:dataset": "node scripts/build-scanner-dataset.mjs",
     "scanner:train": "node scripts/train-scanner-nn.mjs",
     "prepare": "husky",
-    "pretypecheck": "node scripts/generate-build-info.js",
+    "pretypecheck": "node scripts/generate-build-info.js && node scripts/generate-timetable.mjs --check",
     "typecheck": "tsc --noEmit"
   },
   "lint-staged": {

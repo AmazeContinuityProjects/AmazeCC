@@ -1,14 +1,14 @@
-import { getTimetableSchema } from "@/lib/campusSchema";
-import { MORNING_BEFORE_MIN, periodsForSlot, splitSlots, type SlotPeriod } from "@/lib/slots";
+import { MORNING_BEFORE_MIN, splitSlots, type SlotPeriod } from "@/lib/slots";
+import { periodsForFfcsSlot } from "@/lib/ffcsTimetableData";
 
 /**
  * The timetable tab's offering filters: expand a slot string into its period
  * spans and decide whether an offering matches a morning/evening session
- * filter or one specific slot token. Pure slot math over `@/lib/slots`,
- * extracted verbatim from FFCSTimetableTab, its only importer.
+ * filter or one specific slot token. Pure slot math over the generated
+ * timetable data, extracted verbatim from FFCSTimetableTab, its only importer.
  */
 
-const getPeriodsForSlotOuter = (slotName: string) => periodsForSlot(getTimetableSchema(), slotName);
+const getPeriodsForSlotOuter = (slotName: string) => periodsForFfcsSlot(slotName);
 
 const getPeriodsForSlotsOuter = (slotStr: string): SlotPeriod[] => {
   return splitSlots(slotStr)

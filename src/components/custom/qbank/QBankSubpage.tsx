@@ -13,7 +13,7 @@ import {
   ToneBadge,
   useSubpageStack,
 } from "../shared/primitives";
-import { SEARCH_FIELD, TILE_CARD, TILE_INTERACTIVE } from "@/lib/uiTokens";
+import { SEARCH_FIELD, TILE_CARD, TILE_INTERACTIVE, TEXT_CAPTION, SEARCH_ICON } from "@/lib/uiTokens";
 import UploadPaperModal from "./UploadPaperModal";
 import ExamQuestion from "./ExamQuestion";
 import { getQBankPapers, getQBankQuestions } from "@/lib/qbankApi";
@@ -187,7 +187,7 @@ export default function QBankSubpage({
         />
 
         <div className="relative">
-          <GraduationCap className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <GraduationCap className={SEARCH_ICON} />
           <input
             type="search"
             value={searchQuery}
@@ -198,7 +198,7 @@ export default function QBankSubpage({
           />
         </div>
 
-        {globalCoursesLoading && <p className="text-xs text-zinc-500 dark:text-zinc-400">Loading community courses…</p>}
+        {globalCoursesLoading && <p className={TEXT_CAPTION}>Loading community courses…</p>}
 
         <SectionHeader title="Courses" count={filteredCourses.length} />
 
@@ -278,7 +278,7 @@ export default function QBankSubpage({
             <button
               type="button"
               onClick={() => selectedCourse && void handleSelectCourse(selectedCourse)}
-              className="mt-3 text-xs font-bold flex items-center gap-1 hover:underline cursor-pointer"
+              className="mt-3 text-xs font-bold flex items-center gap-1 min-h-11 hover:underline active:underline cursor-pointer"
             >
               <RefreshCcw className="w-3 h-3" /> Retry
             </button>
@@ -314,7 +314,7 @@ export default function QBankSubpage({
                     </div>
                     <div className="min-w-0">
                       <h4 className="font-bold text-sm text-zinc-900 dark:text-white truncate">{p.title}</h4>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      <p className={TEXT_CAPTION}>
                         {p.source_type} • {p.exam_semester} {p.exam_year}
                       </p>
                     </div>

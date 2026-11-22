@@ -106,7 +106,7 @@ export function CourseImportPanel({ mode, onImport, onImportToTimetable }: Cours
       ) : mode === "file" && fileResult ? (
         <FilePreview result={fileResult} />
       ) : (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-pretty text-xs text-muted-foreground">
           {mode === "paste"
             ? "Paste one course per line or copy-paste directly from VTOP registration."
             : "CSV, TSV or TXT. Column headings do not have to match ours."}
@@ -159,7 +159,7 @@ function PasteInput({ value, onChange }: { value: string; onChange: (next: strin
         placeholder={
           "BASTS101 Qualitative Skills F1+TF1 - Dr. Nair\nCSE1001 Introduction to Computing - A1+TA1 - Dr. Smith"
         }
-        className="w-full bg-surface border border-border-strong rounded-xl px-3 py-2.5 text-xs font-mono text-text-heading resize-y focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all custom-scrollbar"
+        className="w-full bg-surface border border-border-strong rounded-xl px-3 py-2.5 text-xs font-mono text-text-heading resize-y focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all custom-scrollbar tabular-nums"
       />
     </div>
   );
@@ -184,10 +184,10 @@ function FileDropzone({ dropzone, reading }: { dropzone: ReturnType<typeof useDr
         ) : (
           <>
             <UploadCloud className="w-6 h-6 mx-auto text-muted-foreground mb-1.5" />
-            <p className="text-xs text-text-heading font-medium">
+            <p className="text-pretty text-xs text-text-heading font-medium">
               {isDragActive ? "Drop it here" : "Drag a file, or click to choose"}
             </p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">CSV, TSV or TXT</p>
+            <p className="text-[12px] text-muted-foreground mt-0.5">CSV, TSV or TXT</p>
           </>
         )}
       </div>
@@ -201,7 +201,7 @@ function PastePreview({ options, rowCount }: { options: ReturnType<typeof parseP
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-xs text-muted-foreground" aria-live="polite">
+      <p className="text-pretty text-xs text-muted-foreground" aria-live="polite">
         {rowCount} course{rowCount === 1 ? "" : "s"} ready
         {withProblems > 0 ? ` · ${withProblems} line${withProblems === 1 ? "" : "s"} need attention` : ""}
       </p>
@@ -229,7 +229,7 @@ function PastePreview({ options, rowCount }: { options: ReturnType<typeof parseP
                   <td className="px-2.5 py-1.5 max-w-[16rem] truncate text-text-heading/80" title={option.rawLine}>
                     {option.rawLine}
                   </td>
-                  <td className="px-2.5 py-1.5 font-mono text-text-heading/70 whitespace-nowrap">
+                  <td className="px-2.5 py-1.5 font-mono text-text-heading/70 whitespace-nowrap tabular-nums">
                     {[option.theorySlotRaw, option.labSlotRaw].filter(Boolean).join(" + ") || "—"}
                   </td>
                   <td className={`px-2.5 py-1.5 ${CONFIDENCE_STYLE[option.confidence]}`}>
@@ -241,7 +241,7 @@ function PastePreview({ options, rowCount }: { options: ReturnType<typeof parseP
           </table>
         </div>
         {options.length > shown.length && (
-          <p className="text-[11px] text-muted-foreground px-2.5 py-1.5 border-t border-border-strong/50 bg-surface-secondary/30">
+          <p className="text-[12px] text-muted-foreground px-2.5 py-1.5 border-t border-border-strong/50 bg-surface-secondary/30">
             …and {options.length - shown.length} more
           </p>
         )}
@@ -305,7 +305,7 @@ function FilePreview({ result }: { result: FileImport }) {
                     <td className="px-2.5 py-1.5 font-medium text-text-heading/80 whitespace-nowrap">
                       {row.CODE ?? "—"}
                     </td>
-                    <td className="px-2.5 py-1.5 font-mono text-text-heading/70 whitespace-nowrap">
+                    <td className="px-2.5 py-1.5 font-mono text-text-heading/70 whitespace-nowrap tabular-nums">
                       {row.SLOT ?? "—"}
                     </td>
                     <td className="px-2.5 py-1.5 text-text-heading/70 max-w-[10rem] truncate" title={row.FACULTY}>
@@ -318,7 +318,7 @@ function FilePreview({ result }: { result: FileImport }) {
             </table>
           </div>
           {result.rows.length > shown.length && (
-            <p className="text-[11px] text-muted-foreground px-2.5 py-1.5 border-t border-border-strong/50 bg-surface-secondary/30">
+            <p className="text-pretty text-[12px] text-muted-foreground px-2.5 py-1.5 border-t border-border-strong/50 bg-surface-secondary/30">
               …and {result.rows.length - shown.length} more
             </p>
           )}

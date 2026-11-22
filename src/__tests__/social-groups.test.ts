@@ -16,7 +16,7 @@
  */
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { computeGroupOverlap, orderedDays, slotKey, slotMap, type SlotMap } from "../lib/social/schedule";
+import { computeGroupOverlap, orderedDays, slotKey, slotMap, TOTAL_SLOTS, type SlotMap } from "../lib/social/schedule";
 import { groupsKeyV1, readGroups, writeGroups, _resetForTests } from "../lib/social/storage";
 import { normaliseGroupName, pruneHandles } from "../lib/social/useSocialGroups";
 import { GROUP_NAME_MAX, type BusyMap, type SocialGroup } from "../lib/social/types";
@@ -65,7 +65,7 @@ afterEach(() => _resetForTests(REG));
 
 describe("computeGroupOverlap", () => {
   it("reports zeros for an empty group, not a free week", () => {
-    // Vacuous truth would give 164 common-free slots for a group of nobody.
+    // Vacuous truth would give TOTAL_SLOTS common-free slots for a group of nobody.
     const m = computeGroupOverlap({}, []);
     expect(m.commonFreeSlots).toBe(0);
     expect(m.commonFreeHours).toBe(0);
@@ -84,8 +84,8 @@ describe("computeGroupOverlap", () => {
     // is not, because they are busy. That difference is what AND produces.
     const alone = computeGroupOverlap(me, [freeMember]).commonFreeSlots;
     const both = computeGroupOverlap(me, [freeMember, busyMember]).commonFreeSlots;
-    expect(alone).toBe(163);
-    expect(both).toBe(162);
+    expect(alone).toBe(TOTAL_SLOTS - 1);
+    expect(both).toBe(TOTAL_SLOTS - 2);
   });
 
   it("matches the pairwise result for a one-person group", () => {
@@ -95,8 +95,8 @@ describe("computeGroupOverlap", () => {
     expect(single.commonFreeHours).toBeGreaterThan(0);
     expect(single.myClassHours).toBeGreaterThan(0);
     // Busy is the union of the two busy maps: K1+K2 (mine) and K1+K3 (theirs)
-    // is {K1, K2, K3}, so 164 - 3.
-    expect(single.commonFreeSlots).toBe(164 - 3);
+    // is {K1, K2, K3}, so TOTAL_SLOTS - 3.
+    expect(single.commonFreeSlots).toBe(TOTAL_SLOTS - 3);
   });
 
   it("narrows monotonically as members are added", () => {
@@ -136,7 +136,7 @@ describe("computeGroupOverlap", () => {
 
   it("is 100% common free when nobody has any classes", () => {
     const m = computeGroupOverlap({}, [{}, {}, {}]);
-    expect(m.commonFreeSlots).toBe(164);
+    expect(m.commonFreeSlots).toBe(TOTAL_SLOTS);
     expect(m.commonFreeHours).toBeGreaterThan(0);
     expect(m.allClashSlots).toBe(0);
   });
@@ -176,24 +176,18 @@ describe("group storage", () => {
       JSON.stringify([
         { id: "g1", name: "no handles", createdAt: 1 },
         { id: "g2", handles: [], name: "no createdAt" },
-      ])
+      ]),
     );
     expect(readGroups(REG)).toEqual([]);
   });
 
   it("keeps the valid rows and drops only the malformed ones", () => {
-    window.localStorage.setItem(
-      groupsKeyV1(REG),
-      JSON.stringify([group, { id: "g2", name: "broken" }])
-    );
+    window.localStorage.setItem(groupsKeyV1(REG), JSON.stringify([group, { id: "g2", name: "broken" }]));
     expect(readGroups(REG)).toEqual([group]);
   });
 
   it("drops a group whose handles are not all strings", () => {
-    window.localStorage.setItem(
-      groupsKeyV1(REG),
-      JSON.stringify([{ ...group, handles: ["AMZ-OK-1111", 42] }])
-    );
+    window.localStorage.setItem(groupsKeyV1(REG), JSON.stringify([{ ...group, handles: ["AMZ-OK-1111", 42] }]));
     expect(readGroups(REG)).toEqual([]);
   });
 

@@ -38,6 +38,7 @@
  * whenever the selected day changes and never has to be invalidated.
  */
 
+import { CAMPUS_SCHEMA } from "@/lib/generated/timetable";
 import {
   DAYS_OF_WEEK,
   periodKey,
@@ -47,6 +48,16 @@ import {
   type DayId,
   type SchemaPeriod,
 } from "./slots";
+
+/**
+ * Canonical period source for callers that do not pass a schema explicitly.
+ *
+ * This is the generated `theory[] / lab[]` projection of the unified timetable,
+ * so the free-classroom day index can be built straight from the source of truth.
+ * Existing callers that pass `src/data/campus/chennai.json` are unaffected — the
+ * argument still wins.
+ */
+export const DEFAULT_CAMPUS_SCHEMA = CAMPUS_SCHEMA as unknown as CampusSchema;
 
 /**
  * The schema shape and the clock live in `./slots` now, because six other
@@ -485,7 +496,10 @@ export type WeekMap = Map<DayId, DayPackage>;
  * Builds the entire 5-day week classroom index.
  * Maps every weekday to its resolved periods, slot assignments, and room occupancy index.
  */
-export function buildWeekIndex(courses: readonly FreeRoomCourse[], schema: CampusSchema): WeekMap {
+export function buildWeekIndex(
+  courses: readonly FreeRoomCourse[],
+  schema: CampusSchema = DEFAULT_CAMPUS_SCHEMA,
+): WeekMap {
   const map: WeekMap = new Map();
   for (const d of DAYS_OF_WEEK) {
     const periods = resolvePeriods(schema, d);

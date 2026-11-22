@@ -25,7 +25,7 @@ import type { AddedCourse, ParsedCourse } from "@/lib/ffcsTypes";
 import { VitfacReviewPill, FacultyAvatar } from "./FacultyReviewSheet";
 import FacultyReviewSheetHost from "./FacultyReviewSheetHost";
 import { getFacultyReview, isVitfacIntegrationEnabled, useVitfacEnabled } from "@/lib/vitfacService";
-import { getTimetableSchema } from "@/lib/campusSchema";
+import { FFCS_SCHEMA } from "@/lib/ffcsTimetableData";
 import { downloadHtmlImage } from "@/lib/imageDownload";
 import { periodsForSlot, findPeriodClash, splitSlots } from "@/lib/slots";
 import { useFacultyReviewSheet } from "../hooks/useFacultyReviewSheet";
@@ -59,7 +59,7 @@ function checkOfferingClash(
   blocked: ReadonlySet<string> = new Set(),
 ): { clashes: boolean; reason?: string } {
   try {
-    const schema = getTimetableSchema();
+    const schema = FFCS_SCHEMA;
     for (const s of offSlots) {
       if (blocked.has(s)) {
         return { clashes: true, reason: `Blocked slot (${s})` };
@@ -108,8 +108,8 @@ function generateFacultyGuideHtml(
     <div style="background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);border-radius:14px;padding:16px;margin-bottom:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(59,130,246,0.25);padding-bottom:10px;margin-bottom:12px;">
         <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:13px;font-weight:700;color:#93c5fd;">⚡ FULL DROP-IN COMBINED REPLACEMENTS</span>
-          <span style="font-size:11px;color:#cbd5e1;">(Zero Clash Risk · Same Slots)</span>
+          <span style="font-size:14px;font-weight:700;color:#93c5fd;">⚡ FULL DROP-IN COMBINED REPLACEMENTS</span>
+          <span style="font-size:12px;color:#cbd5e1;">(Zero Clash Risk · Same Slots)</span>
         </div>
       </div>
       ${dropInMatches
@@ -117,13 +117,13 @@ function generateFacultyGuideHtml(
           const mRev = getFacultyReview({ employeeId: m.ERP_ID, name: m.FACULTY });
           const mRatingBadge =
             mRev && mRev.reviews > 0
-              ? `<span style="background:${mRev.wPct >= 70 ? "rgba(16,185,129,0.2)" : mRev.wPct >= 40 ? "rgba(245,158,11,0.2)" : "rgba(239,68,68,0.2)"};color:${mRev.wPct >= 70 ? "#34d399" : mRev.wPct >= 40 ? "#fbbf24" : "#f87171"};font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;">${mRev.wPct}% W (${mRev.reviews})</span>`
+              ? `<span style="background:${mRev.wPct >= 70 ? "rgba(16,185,129,0.2)" : mRev.wPct >= 40 ? "rgba(245,158,11,0.2)" : "rgba(239,68,68,0.2)"};color:${mRev.wPct >= 70 ? "#34d399" : mRev.wPct >= 40 ? "#fbbf24" : "#f87171"};font-size:12px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;">${mRev.wPct}% W (${mRev.reviews})</span>`
               : "";
           return `
           <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(30,41,59,0.7);border:1px solid rgba(59,130,246,0.3);border-radius:8px;padding:8px 12px;margin-bottom:6px;">
             <div style="display:flex;align-items:center;gap:10px;">
-              <span style="background:#2563eb;color:#ffffff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;">#${mIdx + 1} DROP-IN</span>
-              <span style="font-weight:700;color:#f1f5f9;font-size:13px;">${escape(m.FACULTY)}</span>
+              <span style="background:#2563eb;color:#ffffff;font-size:12px;font-weight:700;padding:2px 6px;border-radius:4px;">#${mIdx + 1} DROP-IN</span>
+              <span style="font-weight:700;color:#f1f5f9;font-size:14px;">${escape(m.FACULTY)}</span>
               ${mRatingBadge}
             </div>
             <span style="color:#94a3b8;font-size:12px;">${escape(m.ROOM || "TBA")}</span>
@@ -150,18 +150,18 @@ function generateFacultyGuideHtml(
           const mRev = getFacultyReview({ employeeId: off.ERP_ID, name: off.FACULTY });
           const mRatingBadge =
             mRev && mRev.reviews > 0
-              ? `<span style="background:${mRev.wPct >= 70 ? "rgba(16,185,129,0.2)" : mRev.wPct >= 40 ? "rgba(245,158,11,0.2)" : "rgba(239,68,68,0.2)"};color:${mRev.wPct >= 70 ? "#34d399" : mRev.wPct >= 40 ? "#fbbf24" : "#f87171"};font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;">${mRev.wPct}% W (${mRev.reviews})</span>`
+              ? `<span style="background:${mRev.wPct >= 70 ? "rgba(16,185,129,0.2)" : mRev.wPct >= 40 ? "rgba(245,158,11,0.2)" : "rgba(239,68,68,0.2)"};color:${mRev.wPct >= 70 ? "#34d399" : mRev.wPct >= 40 ? "#fbbf24" : "#f87171"};font-size:12px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;">${mRev.wPct}% W (${mRev.reviews})</span>`
               : "";
           return `
           <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(30,41,59,0.7);border:1px solid rgba(51,65,85,0.7);border-radius:8px;padding:8px 12px;margin-bottom:6px;">
             <div style="display:flex;align-items:center;gap:10px;">
-              <span style="background:#0284c7;color:#ffffff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;">EMBEDDED</span>
-              <span style="font-weight:600;color:#f1f5f9;font-size:13px;">${escape(off.FACULTY)}</span>
+              <span style="background:#0284c7;color:#ffffff;font-size:12px;font-weight:700;padding:2px 6px;border-radius:4px;">EMBEDDED</span>
+              <span style="font-weight:600;color:#f1f5f9;font-size:14px;">${escape(off.FACULTY)}</span>
               ${mRatingBadge}
             </div>
             <div style="text-align:right;">
-              <span style="color:#fbbf24;font-size:11px;font-weight:700;">${escape(o.slots.join("+"))}</span>
-              <span style="color:#64748b;font-size:11px;margin-left:6px;">${escape(off.ROOM || "TBA")}</span>
+              <span style="color:#fbbf24;font-size:12px;font-weight:700;">${escape(o.slots.join("+"))}</span>
+              <span style="color:#64748b;font-size:12px;margin-left:6px;">${escape(off.ROOM || "TBA")}</span>
             </div>
           </div>
         `;
@@ -179,7 +179,7 @@ function generateFacultyGuideHtml(
           const slotBadges = half.slots
             .map(
               (s) =>
-                `<span style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;">${escape(s)}</span>`,
+                `<span style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;">${escape(s)}</span>`,
             )
             .join(" ");
 
@@ -187,13 +187,13 @@ function generateFacultyGuideHtml(
           const currentRev = getFacultyReview({ employeeId: half.employeeId, name: half.faculty });
           const currentRatingBadge =
             currentRev && currentRev.reviews > 0
-              ? `<span style="background:${currentRev.wPct >= 70 ? "rgba(16,185,129,0.2)" : currentRev.wPct >= 40 ? "rgba(245,158,11,0.2)" : "rgba(239,68,68,0.2)"};color:${currentRev.wPct >= 70 ? "#34d399" : currentRev.wPct >= 40 ? "#fbbf24" : "#f87171"};font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;">${currentRev.wPct}% W (${currentRev.reviews})</span>`
+              ? `<span style="background:${currentRev.wPct >= 70 ? "rgba(16,185,129,0.2)" : currentRev.wPct >= 40 ? "rgba(245,158,11,0.2)" : "rgba(239,68,68,0.2)"};color:${currentRev.wPct >= 70 ? "#34d399" : currentRev.wPct >= 40 ? "#fbbf24" : "#f87171"};font-size:12px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;">${currentRev.wPct}% W (${currentRev.reviews})</span>`
               : "";
 
           const currentTeacherHtml = `
         <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:10px 14px;margin-bottom:8px;">
           <div style="display:flex;align-items:center;gap:10px;">
-            <span style="background:#10b981;color:#022c22;font-size:10px;font-weight:900;padding:2px 6px;border-radius:4px;letter-spacing:0.5px;">PRIMARY PICK</span>
+            <span style="background:#10b981;color:#022c22;font-size:12px;font-weight:900;padding:2px 6px;border-radius:4px;letter-spacing:0.5px;">PRIMARY PICK</span>
             <span style="font-weight:700;color:#ffffff;font-size:14px;">${escape(half.faculty)}</span>
             ${currentRatingBadge}
           </div>
@@ -208,13 +208,13 @@ function generateFacultyGuideHtml(
                 const mRev = getFacultyReview({ employeeId: m.ERP_ID, name: m.FACULTY });
                 const mRatingBadge =
                   mRev && mRev.reviews > 0
-                    ? `<span style="background:${mRev.wPct >= 70 ? "rgba(16,185,129,0.2)" : mRev.wPct >= 40 ? "rgba(245,158,11,0.2)" : "rgba(239,68,68,0.2)"};color:${mRev.wPct >= 70 ? "#34d399" : mRev.wPct >= 40 ? "#fbbf24" : "#f87171"};font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;">${mRev.wPct}% W (${mRev.reviews})</span>`
+                    ? `<span style="background:${mRev.wPct >= 70 ? "rgba(16,185,129,0.2)" : mRev.wPct >= 40 ? "rgba(245,158,11,0.2)" : "rgba(239,68,68,0.2)"};color:${mRev.wPct >= 70 ? "#34d399" : mRev.wPct >= 40 ? "#fbbf24" : "#f87171"};font-size:12px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;">${mRev.wPct}% W (${mRev.reviews})</span>`
                     : "";
                 return `
             <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(30,41,59,0.7);border:1px solid rgba(51,65,85,0.7);border-radius:8px;padding:8px 12px;margin-bottom:6px;">
               <div style="display:flex;align-items:center;gap:10px;">
-                <span style="background:#334155;color:#cbd5e1;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;">#${mIdx + 1} BACKUP</span>
-                <span style="font-weight:600;color:#f1f5f9;font-size:13px;">${escape(m.FACULTY)}</span>
+                <span style="background:#334155;color:#cbd5e1;font-size:12px;font-weight:700;padding:2px 6px;border-radius:4px;">#${mIdx + 1} BACKUP</span>
+                <span style="font-weight:600;color:#f1f5f9;font-size:14px;">${escape(m.FACULTY)}</span>
                 ${mRatingBadge}
               </div>
               <span style="color:#94a3b8;font-size:12px;">${escape(m.ROOM || (m.ERP_ID ? `ERP ${m.ERP_ID}` : "TBA"))}</span>
@@ -225,7 +225,7 @@ function generateFacultyGuideHtml(
 
             alternativesHtml = `
           <div style="margin-top:10px;">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#94a3b8;margin-bottom:6px;padding-left:2px;">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#94a3b8;margin-bottom:6px;padding-left:2px;">
               Backup Options (Exact Same Slot · Zero Clash Risk)
             </div>
             ${rows}
@@ -243,8 +243,8 @@ function generateFacultyGuideHtml(
         <div style="background:rgba(15,23,42,0.9);border:1px solid #1e293b;border-radius:14px;padding:16px;margin-bottom:14px;">
           <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1e293b;padding-bottom:10px;margin-bottom:12px;">
             <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:13px;font-weight:700;color:#e2e8f0;">${escape(halfTitle)}</span>
-              <span style="font-size:11px;color:#94a3b8;">(${1 + allMatches.length} ${1 + allMatches.length === 1 ? "faculty" : "faculties"} in this slot)</span>
+              <span style="font-size:14px;font-weight:700;color:#e2e8f0;">${escape(halfTitle)}</span>
+              <span style="font-size:12px;color:#94a3b8;">(${1 + allMatches.length} ${1 + allMatches.length === 1 ? "faculty" : "faculties"} in this slot)</span>
             </div>
             <div style="display:flex;gap:6px;">${slotBadges}</div>
           </div>
@@ -260,7 +260,7 @@ function generateFacultyGuideHtml(
       <!-- Header -->
       <div style="display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid #1e293b;padding-bottom:16px;margin-bottom:20px;">
         <div>
-          <div style="font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#60a5fa;margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+          <div style="font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#60a5fa;margin-bottom:4px;display:flex;align-items:center;gap:6px;">
             <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#3b82f6;"></span>
             AmazeCC • FFCS Slot Faculty Sheet
           </div>
@@ -269,7 +269,7 @@ function generateFacultyGuideHtml(
           </h1>
         </div>
         <div style="text-align:right;">
-          <span style="font-size:10px;color:#94a3b8;font-weight:600;display:block;">Target Schedule</span>
+          <span style="font-size:12px;color:#94a3b8;font-weight:600;display:block;">Target Schedule</span>
           <span style="font-size:12px;font-weight:800;color:#fbbf24;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);padding:3px 8px;border-radius:6px;display:inline-block;margin-top:2px;">
             ${escape(targetSlots)}
           </span>
@@ -298,7 +298,7 @@ function generateFacultyGuideHtml(
       </div>
 
       <!-- Footer -->
-      <div style="display:flex;align-items:center;justify-content:space-between;font-size:10px;color:#64748b;border-top:1px solid #1e293b;padding-top:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#64748b;border-top:1px solid #1e293b;padding-top:12px;">
         <span>Generated with AmazeCC${isVitfacIntegrationEnabled() ? " &bull; Ratings sourced from third-party vitfac.pages.dev" : ""}</span>
         <span>Clash-Free Timetable Builder</span>
       </div>
@@ -536,7 +536,7 @@ export default function SlotFacultySwapSheet({
         icon={<Users className="w-5 h-5 text-blue-400" />}
       >
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-xs text-muted-foreground flex-1 min-w-[200px]">
+          <p className="text-pretty text-xs text-muted-foreground flex-1 min-w-[200px]">
             {onSwap
               ? "Everyone below teaches this course at the exact same time slot — a swap changes the teacher only."
               : "Everyone below teaches this course at the exact same time slot."}
@@ -601,7 +601,7 @@ export default function SlotFacultySwapSheet({
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
-            <ol className="list-decimal list-inside text-muted-foreground space-y-1 text-[11px] leading-relaxed pl-0.5">
+            <ol className="list-decimal list-inside text-muted-foreground space-y-1 text-[12px] leading-relaxed pl-0.5">
               <li>
                 Search course code <strong className="text-text-heading">{code}</strong> in VTOP Course Registration.
               </li>
@@ -622,7 +622,7 @@ export default function SlotFacultySwapSheet({
             <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-transparent border border-blue-500/25 rounded-2xl p-3.5 flex flex-col gap-2.5">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[11px] font-bold tracking-wide uppercase">
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[12px] font-bold tracking-wide uppercase">
                     <Sparkles className="w-3 h-3 text-blue-400" /> Drop-In Combined Replacements
                   </span>
                   <span className="text-xs text-muted-foreground font-medium">
@@ -633,7 +633,7 @@ export default function SlotFacultySwapSheet({
                   {allSlots.map((s) => (
                     <span
                       key={s}
-                      className="bg-blue-500/15 border border-blue-500/30 text-blue-300 text-[10px] font-semibold px-1.5 py-0.5 rounded-md"
+                      className="bg-blue-500/15 border border-blue-500/30 text-blue-300 text-[12px] font-semibold px-1.5 py-0.5 rounded-md"
                     >
                       {s}
                     </span>
@@ -659,7 +659,7 @@ export default function SlotFacultySwapSheet({
                       <div className="flex items-center gap-2 min-w-0">
                         <FacultyAvatar employeeId={off.ERP_ID} name={off.FACULTY} size="xs" tone="blue" />
                         <span className="font-bold text-sm text-text-heading truncate">{off.FACULTY}</span>
-                        <span className="text-[10px] text-blue-400 font-bold px-1.5 py-0.2 rounded bg-blue-500/20 border border-blue-500/30 shrink-0">
+                        <span className="text-[12px] text-blue-400 font-bold px-1.5 py-0.2 rounded bg-blue-500/20 border border-blue-500/30 shrink-0">
                           Full Drop-In
                         </span>
                         <VitfacReviewPill
@@ -697,7 +697,7 @@ export default function SlotFacultySwapSheet({
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2 flex-wrap">
                       {half.type && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        <span className="text-[12px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
                           {half.type}
                         </span>
                       )}
@@ -717,7 +717,7 @@ export default function SlotFacultySwapSheet({
                       {half.slots.map((s) => (
                         <span
                           key={s}
-                          className="bg-accent/50 border border-border-strong text-text-heading/80 text-[10px] px-1.5 py-0.5 rounded-md"
+                          className="bg-accent/50 border border-border-strong text-text-heading/80 text-[12px] px-1.5 py-0.5 rounded-md"
                         >
                           {s}
                         </span>
@@ -769,7 +769,7 @@ export default function SlotFacultySwapSheet({
           {filteredOtherOfferings.length > 0 && (
             <div className="flex flex-col gap-1.5 pt-2 border-t border-border-strong/40">
               <div className="flex items-center justify-between gap-2 px-2 flex-wrap">
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                <div className="flex items-center gap-1.5 text-[12px] font-bold text-muted-foreground uppercase tracking-wider">
                   <Users className="w-3.5 h-3.5 text-muted-foreground" />
                   <span>
                     {isEmbedded
@@ -777,7 +777,7 @@ export default function SlotFacultySwapSheet({
                       : `Other Available Faculties for ${code}`}
                   </span>
                 </div>
-                <span className="text-[10px] text-muted-foreground font-medium">
+                <span className="text-[12px] text-muted-foreground font-medium">
                   {isEmbedded ? "(Grouped Theory + Lab · Clash checked)" : "(Clash checked)"}
                 </span>
               </div>
@@ -828,7 +828,7 @@ export default function SlotFacultySwapSheet({
                             </span>
                             {(offIsEmbedded || isEmbedded) && (
                               <span
-                                className={`text-[10px] font-bold px-1.5 py-0.2 rounded border shrink-0 ${
+                                className={`text-[12px] font-bold px-1.5 py-0.2 rounded border shrink-0 ${
                                   clashes
                                     ? "bg-zinc-800/40 text-zinc-600 border-zinc-700/30"
                                     : "bg-blue-500/15 text-blue-400 border-blue-500/30"
@@ -850,26 +850,26 @@ export default function SlotFacultySwapSheet({
                             {offTheory && offTheory.length > 0 && offLab && offLab.length > 0 ? (
                               <>
                                 <span
-                                  className={`text-[10px] font-semibold ${clashes ? "text-zinc-600" : "text-amber-400/90"}`}
+                                  className={`text-[12px] font-semibold ${clashes ? "text-zinc-600" : "text-amber-400/90"}`}
                                 >
                                   TH: {offTheory.join("+")}
                                 </span>
-                                <span className="text-[10px] text-muted-foreground/30">•</span>
+                                <span className="text-[12px] text-muted-foreground/30">•</span>
                                 <span
-                                  className={`text-[10px] font-semibold ${clashes ? "text-zinc-600" : "text-sky-600 dark:text-sky-400"}`}
+                                  className={`text-[12px] font-semibold ${clashes ? "text-zinc-600" : "text-sky-600 dark:text-sky-400"}`}
                                 >
                                   LAB: {offLab.join("+")}
                                 </span>
                               </>
                             ) : (
                               <span
-                                className={`text-[10px] font-medium ${clashes ? "text-zinc-600" : "text-muted-foreground"}`}
+                                className={`text-[12px] font-medium ${clashes ? "text-zinc-600" : "text-muted-foreground"}`}
                               >
                                 {offSlots.join("+")}
                               </span>
                             )}
-                            <span className="text-[10px] text-muted-foreground/30">•</span>
-                            <span className={`text-[10px] ${clashes ? "text-zinc-600" : "text-muted-foreground"}`}>
+                            <span className="text-[12px] text-muted-foreground/30">•</span>
+                            <span className={`text-[12px] ${clashes ? "text-zinc-600" : "text-muted-foreground"}`}>
                               {off.ROOM || "TBA"}
                             </span>
                           </div>
@@ -879,13 +879,13 @@ export default function SlotFacultySwapSheet({
                       <div className="shrink-0 flex items-center gap-1.5">
                         {clashes ? (
                           <span
-                            className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-red-950/50 text-red-400/60 border border-red-900/30 max-w-[160px] truncate"
+                            className="text-[12px] font-semibold px-2 py-0.5 rounded-md bg-red-950/50 text-red-400/60 border border-red-900/30 max-w-[160px] truncate"
                             title={clashReason}
                           >
                             ⚠️ Clash
                           </span>
                         ) : (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          <span className="text-[12px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                             ✓ No Clash
                           </span>
                         )}
@@ -918,7 +918,7 @@ export default function SlotFacultySwapSheet({
           )}
 
           {vitfacEnabled && (
-            <p className="text-[10px] text-muted-foreground/60 text-center pt-2 border-t border-border-strong/30 leading-tight">
+            <p className="text-[12px] text-muted-foreground/60 text-center pt-2 border-t border-border-strong/30 leading-tight">
               Disclaimer: Ratings are sourced from third-party platform{" "}
               <a
                 href="https://vitfac.pages.dev"

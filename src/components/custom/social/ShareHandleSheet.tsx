@@ -10,6 +10,7 @@
  * is the moment someone should learn that pairing is two-way.
  */
 
+import { FOCUS_RING, SPINNER_ICON, TEXT_CAPTION } from "@/lib/uiTokens";
 import { useCallback, useMemo, useState } from "react";
 import { Check, Copy, Download, Link2, Loader2, MessageSquare, RefreshCcw, Share2, ShieldCheck } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -152,11 +153,11 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
 
             {inviteLink && (
               <div className="p-3 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 space-y-2.5">
-                <p className="flex items-center gap-1.5 text-[11px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+                <p className="flex items-center gap-1.5 text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
                   <Link2 className="w-3.5 h-3.5 text-indigo-500" />
                   Invite link
                 </p>
-                <p className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 truncate" title={inviteLink}>
+                <p className="text-xs font-mono text-zinc-500 dark:text-zinc-400 truncate" title={inviteLink}>
                   {inviteLink}
                 </p>
                 <div className={`grid gap-2 ${canNativeShare ? "grid-cols-2" : "grid-cols-1"}`}>
@@ -179,7 +180,7 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
                     </button>
                   )}
                 </div>
-                <p className="text-[10.5px] text-zinc-400 dark:text-zinc-500 font-medium leading-relaxed">
+                <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium leading-relaxed">
                   Opens AmazeCC with your handle filled in. They still confirm before anything is shared.
                 </p>
               </div>
@@ -187,7 +188,7 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
 
             <div className="flex flex-col items-center gap-3 p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800">
               {qrError ? (
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium py-6 text-center">
+                <p className={`${TEXT_CAPTION} font-medium py-6 text-center`}>
                   The QR code could not be drawn on this browser. Copy the handle instead.
                 </p>
               ) : (
@@ -199,7 +200,7 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
                 <button
                   type="button"
                   onClick={downloadQR}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer text-[11px] font-bold"
+                  className={`relative hit-expand inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer text-xs font-bold ${FOCUS_RING} active:scale-95`}
                 >
                   <Download className="w-3.5 h-3.5" />
                   Save as image
@@ -208,11 +209,11 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
             </div>
 
             <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/70 dark:border-zinc-800 space-y-1.5">
-              <p className="flex items-center gap-1.5 text-[11px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+              <p className="flex items-center gap-1.5 text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
                 <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
                 What your handle gives away
               </p>
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
+              <p className={`${TEXT_CAPTION} font-medium leading-relaxed`}>
                 Nothing. The handle identifies you, not your schedule. A student who enters it can request a pairing,
                 and{" "}
                 <strong className="text-zinc-700 dark:text-zinc-200">
@@ -232,7 +233,7 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
               <h4 className="text-sm font-black text-zinc-800 dark:text-zinc-100 font-outfit">
                 Your handle is not ready yet
               </h4>
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed max-w-[280px] mx-auto">
+              <p className={`${TEXT_CAPTION} font-medium leading-relaxed max-w-[280px] mx-auto`}>
                 A handle is issued the first time your timetable is derived from VTOP. Run a sync and it will appear
                 here.
               </p>
@@ -243,7 +244,7 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
               disabled={syncing}
               className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCcw className="w-4 h-4" />}
+              {syncing ? <Loader2 className={SPINNER_ICON} /> : <RefreshCcw className="w-4 h-4" />}
               {syncing ? "Syncing…" : "Sync now"}
             </button>
           </div>

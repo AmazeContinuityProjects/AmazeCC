@@ -31,15 +31,8 @@
  * failure happened; two places decide how to say it.
  */
 
-import {
-  MORNING_BEFORE_MIN,
-  periodsForSlot,
-  slotSpellings,
-  splitSlots,
-  type CampusSchema,
-  type DayId,
-  type SlotPeriod,
-} from "@/lib/slots";
+import { MORNING_BEFORE_MIN, splitSlots, type CampusSchema, type DayId, type SlotPeriod } from "@/lib/slots";
+import { ffcsSlotSpellings, periodsForFfcsSlot } from "@/lib/ffcsTimetableData";
 import {
   pairwiseSocialScore,
   balancedScore,
@@ -237,6 +230,48 @@ export interface GenerateParams {
 }
 
 /**
+ * The compact, worker-safe form of one report row.
+ *
+ * `ParsedCourse` also carries bookkeeping a solve never reads (`LINK_ID`,
+ * `CLASS_IDS`, `ORIGINAL_CODE`, `EMPLOYEE_SCHOOL` — used by the swap sheet,
+ * grouping and sharing on the main thread). Sending those across a structured
+ * clone on every generation run pays for bytes the solver never touches. This
+ * type is the exact set of fields the solve path reads; the serializer below
+ * lives next to it so the two cannot drift apart unnoticed.
+ */
+export type SolverCourse = Pick<
+  ParsedCourse,
+  "CODE" | "TITLE" | "TYPE" | "CREDITS" | "ROOM" | "SLOT" | "FACULTY" | "BATCH" | "CLASS_ID" | "ERP_ID"
+>;
+
+/**
+ * Build an immutable snapshot of only the fields the solver reads.
+ *
+ * The result is frozen so the snapshot can be reused across drop retries (and
+ * cached by the worker) without any caller accidentally mutating the shared
+ * copy. Optional fields are omitted rather than sent as `undefined`, which
+ * keeps the wire payload as small as the type promises.
+ */
+export function toSolverCourses(courses: readonly ParsedCourse[]): readonly SolverCourse[] {
+  return Object.freeze(
+    courses.map((course) =>
+      Object.freeze({
+        CODE: course.CODE,
+        TITLE: course.TITLE,
+        TYPE: course.TYPE,
+        CREDITS: course.CREDITS,
+        ROOM: course.ROOM,
+        SLOT: course.SLOT,
+        FACULTY: course.FACULTY,
+        ...(course.BATCH !== undefined ? { BATCH: course.BATCH } : {}),
+        ...(course.CLASS_ID !== undefined ? { CLASS_ID: course.CLASS_ID } : {}),
+        ...(course.ERP_ID !== undefined ? { ERP_ID: course.ERP_ID } : {}),
+      }),
+    ),
+  );
+}
+
+/**
  * Either the timetables, or the reason there are none.
  *
  * The discriminant is a string, not `ok: true | false`, because this project's
@@ -412,14 +447,14 @@ function parse24HourToMinutes(time: string): number | null {
  * `true` for a slot with no period at all, which is how `"NIL"` and any id the
  * schema does not define pass every filter rather than being silently dropped.
  */
-function isMorningSlot(schema: CampusSchema, slot: string): boolean {
-  const periods = periodsForSlot(schema, slot);
+function isMorningSlot(slot: string): boolean {
+  const periods = periodsForFfcsSlot(slot);
   if (!periods.length) return true;
   return periods.some((p) => p.startMin < MORNING_BEFORE_MIN);
 }
 
-function isEveningSlot(schema: CampusSchema, slot: string): boolean {
-  const periods = periodsForSlot(schema, slot);
+function isEveningSlot(slot: string): boolean {
+  const periods = periodsForFfcsSlot(slot);
   if (!periods.length) return true;
   return periods.some((p) => p.startMin >= MORNING_BEFORE_MIN);
 }
@@ -455,12 +490,7 @@ function isCompleteEmbeddedCourse(option: ParsedCourse): boolean {
  * matters for the error a student sees: an offering rejected by an early filter
  * is never reconsidered by a later one.
  */
-function optionsFor(
-  schema: CampusSchema,
-  params: GenerateParams,
-  lock: CourseLock,
-  all: ParsedCourse[],
-): ParsedCourse[] {
+function optionsFor(params: GenerateParams, lock: CourseLock, all: ParsedCourse[]): ParsedCourse[] {
   const blocked = new Set(params.blockedSlots.map((s) => s.trim().toUpperCase()));
   let options = all;
 
@@ -492,12 +522,12 @@ function optionsFor(
   if (params.preference === "morning" && params.strictTheoryPreference !== false) {
     options = options.filter((opt) => {
       const theory = splitSlots(opt.SLOT).filter((s) => !s.startsWith("L") && s !== "NIL");
-      return !theory.length || isMorningSlot(schema, theory[0]);
+      return !theory.length || isMorningSlot(theory[0]);
     });
   } else if (params.preference === "evening" && params.strictTheoryPreference !== false) {
     options = options.filter((opt) => {
       const theory = splitSlots(opt.SLOT).filter((s) => !s.startsWith("L") && s !== "NIL");
-      return !theory.length || isEveningSlot(schema, theory[0]);
+      return !theory.length || isEveningSlot(theory[0]);
     });
   }
 
@@ -506,7 +536,7 @@ function optionsFor(
   //    the two name the same period and the report writes the numbered one.
   options = options.filter((opt) => {
     const slots = splitSlots(opt.SLOT);
-    return !slots.some((slot) => slotSpellings(slot).some((spelling) => blocked.has(spelling)));
+    return !slots.some((slot) => ffcsSlotSpellings(slot).some((spelling) => blocked.has(spelling)));
   });
 
   // 7. Time bounds.
@@ -525,7 +555,7 @@ function optionsFor(
       splitSlots(opt.SLOT).every((slot) => {
         // Slot ids can recur on several days; every occurrence must meet its
         // global bounds and the optional day-specific end time.
-        return periodsForSlot(schema, slot).every((period) => {
+        return periodsForFfcsSlot(slot).every((period) => {
           const dayLimit = maxAllowedByDay[period.day];
           return (
             period.startMin >= lower && period.endMin <= upper && (dayLimit === undefined || period.endMin <= dayLimit)
@@ -989,13 +1019,9 @@ function groupVariants(timetables: TimetableState[]): TimetableState[] {
 
 /* ── entry point ────────────────────────────────────────────────────────── */
 
-function preferredTheoryScore(
-  courses: AddedCourse[],
-  schema: CampusSchema,
-  preference: "morning" | "evening",
-): number | null {
+function preferredTheoryScore(courses: AddedCourse[], preference: "morning" | "evening"): number | null {
   const theoryPeriods = courses.flatMap((course) =>
-    course.slots.flatMap((slot) => periodsForSlot(schema, slot).filter((period) => period.type === "theory")),
+    course.slots.flatMap((slot) => periodsForFfcsSlot(slot).filter((period) => period.type === "theory")),
   );
   if (!theoryPeriods.length) return null;
   const preferredCount = theoryPeriods.filter((period) =>
@@ -1054,9 +1080,9 @@ function scoreCombination(
     const lateFinish = bounded((timeInputs.averageDayEndMinutes - 12 * 60) / (7 * 60));
     switch (params.preference) {
       case "morning":
-        return hasSoftTheoryPreference ? preferredTheoryScore(courses, params.schema, "morning") : earlyStart * 100;
+        return hasSoftTheoryPreference ? preferredTheoryScore(courses, "morning") : earlyStart * 100;
       case "evening":
-        return hasSoftTheoryPreference ? preferredTheoryScore(courses, params.schema, "evening") : lateFinish * 100;
+        return hasSoftTheoryPreference ? preferredTheoryScore(courses, "evening") : lateFinish * 100;
       case "compact":
         return timeInputs.activeDays ? (timeInputs.compactDays / timeInputs.activeDays) * 100 : 0;
       case "spread":
@@ -1180,7 +1206,7 @@ export function generateTimetablesStream(params: GenerateParams, hooks: Generate
   const consecutiveLabPairs = consecutiveLabPeriodPairs(schema, params.lunchBreakSeparatesLabs ?? false);
 
   for (const lock of params.courseLocks) {
-    const options = optionsFor(schema, params, lock, byCode.get(lock.code) ?? []);
+    const options = optionsFor(params, lock, byCode.get(lock.code) ?? []);
     if (!options.length) {
       return { kind: "error", code: "no_valid_slots", subjectCode: lock.code };
     }
@@ -1195,7 +1221,7 @@ export function generateTimetablesStream(params: GenerateParams, hooks: Generate
         const periods: SlotPeriod[] = [];
         const labPeriods: SlotPeriod[] = [];
         for (const slot of splitSlots(opt.SLOT)) {
-          for (const period of periodsForSlot(schema, slot)) {
+          for (const period of periodsForFfcsSlot(slot)) {
             periods.push(period);
             if (period.type === "lab") labPeriods.push(period);
           }

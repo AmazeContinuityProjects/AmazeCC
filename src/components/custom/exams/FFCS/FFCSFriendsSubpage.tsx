@@ -44,7 +44,7 @@ import { useOverlayBack } from "@/lib/overlayStack";
 import { loadShareInput, ShareInputError } from "@/lib/ffcsShareInput";
 import BottomSheet from "../../shared/BottomSheet";
 import { EmptyPanel, ListRowText, ListShell, PageShell } from "../../shared/primitives";
-import { LIST_ROW } from "@/lib/uiTokens";
+import { FOCUS_RING_INSET, ICON_WELL, LIST_ROW, SPINNER_ICON } from "@/lib/uiTokens";
 import {
   FriendTimetableViewModal,
   type SelectedFriendTimetableData,
@@ -93,8 +93,7 @@ const HUB_ROWS = [
   },
 ] as const;
 
-const ROW_TAPPABLE =
-  "cursor-pointer active:bg-zinc-100/70 dark:active:bg-zinc-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500";
+const ROW_TAPPABLE = "cursor-pointer active:bg-zinc-100/70 dark:active:bg-zinc-800/60 " + FOCUS_RING_INSET;
 
 export interface FFCSFriendsSubpageProps {
   onClose: () => void;
@@ -282,15 +281,13 @@ export default function FFCSFriendsSubpage({
                   onClick={() => setSection(row.id)}
                   className={`${LIST_ROW} ${ROW_TAPPABLE}`}
                 >
-                  <div
-                    className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${row.iconBg}`}
-                  >
+                  <div className={`${ICON_WELL} ${row.iconBg}`}>
                     <row.Icon className="w-5 h-5" />
                   </div>
                   <ListRowText title={row.label} subtitle={row.subtitle} titleTag="h3" />
                   <div className="flex items-center gap-2 shrink-0">
                     {count !== null ? (
-                      <span className="text-sm font-black font-outfit tracking-tight leading-none text-zinc-700 dark:text-zinc-200">
+                      <span className="text-sm font-black font-outfit tracking-tight leading-none text-zinc-700 dark:text-zinc-200 tabular-nums">
                         {count}
                       </span>
                     ) : null}
@@ -332,7 +329,7 @@ export default function FFCSFriendsSubpage({
                   onClick={() => void handleAddFromLink()}
                   className="shrink-0 bg-pink-500 hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-lg shadow-pink-500/20 flex items-center justify-center gap-2"
                 >
-                  {isResolving ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                  {isResolving ? <Loader2 className={SPINNER_ICON} /> : <UserPlus className="w-4 h-4" />}
                   {isResolving ? "Adding…" : "Add friend"}
                 </button>
               </div>
@@ -346,7 +343,7 @@ export default function FFCSFriendsSubpage({
 
             <div className="flex items-center gap-3">
               <span className="h-px flex-1 bg-border-muted dark:bg-border/70" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">or</span>
+              <span className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">or</span>
               <span className="h-px flex-1 bg-border-muted dark:bg-border/70" />
             </div>
 
@@ -359,7 +356,7 @@ export default function FFCSFriendsSubpage({
               />
               <Upload className="w-5 h-5 text-pink-500" /> Import exported JSON
             </label>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-pretty text-xs text-muted-foreground">
               Your friend can export theirs from the planner&rsquo;s share menu. Ask them for the link instead if you
               can — it stays current with their changes.
             </p>
@@ -387,7 +384,7 @@ export default function FFCSFriendsSubpage({
             <ListShell>
               {friends.map((f) => (
                 <div key={f.id} className="w-full flex items-center gap-3 py-3 px-4">
-                  <div className="w-9 h-9 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-500 font-bold shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-500 font-bold shrink-0 tabular-nums">
                     {f.name.charAt(0).toUpperCase()}
                   </div>
                   <ListRowText
@@ -429,7 +426,7 @@ export default function FFCSFriendsSubpage({
         {section === "groups" && (
           <div className="space-y-6">
             <div className="card-surface border border-border-strong rounded-2xl p-4 flex flex-col gap-3">
-              <h3 className="text-sm font-bold text-text-heading flex items-center gap-2">
+              <h3 className="text-balance text-sm font-bold text-text-heading flex items-center gap-2">
                 <UsersRound className="w-4 h-4 text-emerald-500" /> Create a group
               </h3>
               <input
@@ -437,7 +434,7 @@ export default function FFCSFriendsSubpage({
                 placeholder="Group name (e.g., Gaming Squad)"
                 value={newGroupName}
                 onChange={(e) => setNewGroupName(e.target.value)}
-                className="w-full bg-surface border border-border-strong rounded-xl px-4 py-2.5 text-base sm:text-sm text-text-heading focus:outline-none focus:border-emerald-500/50 transition-colors"
+                className="w-full bg-surface border border-border-strong rounded-xl px-4 py-2.5 text-base sm:text-sm text-text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus:border-emerald-500/50 transition-colors"
               />
               <div className="max-h-40 overflow-y-auto custom-scrollbar border border-border-strong rounded-xl bg-surface p-2">
                 {friends.length === 0 ? (
@@ -506,7 +503,7 @@ export default function FFCSFriendsSubpage({
                         return (
                           <span
                             key={fid}
-                            className="text-[10px] bg-surface-secondary/60 border border-border-muted dark:border-border/70 px-1.5 py-0.5 rounded-full text-muted-foreground"
+                            className="text-[12px] bg-surface-secondary/60 border border-border-muted dark:border-border/70 px-1.5 py-0.5 rounded-full text-muted-foreground"
                           >
                             {f.name}
                           </span>
@@ -541,9 +538,9 @@ export default function FFCSFriendsSubpage({
             <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-500">
               <Users className="w-5 h-5" />
             </div>
-            <h2 className="text-xl font-bold text-text-heading">Name Your Friend</h2>
+            <h2 className="text-balance text-xl font-bold text-text-heading">Name Your Friend</h2>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-pretty text-sm text-muted-foreground">
             {pendingFriendTimetables.length === 1
               ? "They shared a timetable. Give them a name so you can identify them in the generator."
               : `They're considering ${pendingFriendTimetables.length} timetables. Give them a name so you can identify them in the generator.`}

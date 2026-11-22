@@ -133,7 +133,7 @@ export default function FresherWelcomePage({
         </div>
         <button
           onClick={onDismiss}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
+          className="inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
         >
           <span>Launch Dashboard</span>
           <ArrowRight size={13} />
@@ -144,11 +144,11 @@ export default function FresherWelcomePage({
         <div className="relative p-6 sm:p-8 rounded-[24px] bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent border border-indigo-500/20 dark:border-indigo-500/15 overflow-hidden">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
             <div className="space-y-1.5">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 text-[11px] font-bold">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 text-xs font-bold">
                 <Sparkles size={12} />
                 <span>VIT Campus Onboarding</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-900 dark:text-white font-outfit">
+              <h1 className="break-words text-[32px] font-black tracking-tight text-balance leading-[1.15] text-zinc-900 dark:text-white font-outfit">
                 Welcome, {displayName}! 👋
               </h1>
               <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-xl leading-relaxed">
@@ -160,7 +160,7 @@ export default function FresherWelcomePage({
             <div className="flex sm:flex-col gap-2 shrink-0">
               {totalAckDocs > 0 && (
                 <div className="px-3.5 py-2 rounded-2xl card-surface border border-zinc-200/80 dark:border-zinc-800 text-right">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Documents</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">Documents</p>
                   <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">
                     {submittedAckDocs}/{totalAckDocs} Submitted
                   </p>
@@ -168,7 +168,7 @@ export default function FresherWelcomePage({
               )}
               {eptData && (
                 <div className="px-3.5 py-2 rounded-2xl card-surface border border-zinc-200/80 dark:border-zinc-800 text-right">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">EPT Test</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">EPT Test</p>
                   <p className="text-xs font-black text-amber-600 dark:text-amber-400">
                     {upcomingEpt ? "Upcoming" : eptRows.length > 0 ? "Scheduled" : "Status"}
                   </p>
@@ -189,13 +189,13 @@ export default function FresherWelcomePage({
                   <h2 className="text-sm font-bold text-zinc-900 dark:text-white font-outfit">
                     {eptData.title || "English Proficiency Test (EPT) Schedule"}
                   </h2>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     Official venue and timing for your EPT exam
                   </p>
                 </div>
               </div>
               {upcomingEpt && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-bold border border-amber-500/20">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs font-bold border border-amber-500/20">
                   <AlertCircle size={12} /> Upcoming Exam
                 </span>
               )}
@@ -210,7 +210,7 @@ export default function FresherWelcomePage({
                         {eptHeaders.map((h: string, i: number) => (
                           <th
                             key={i}
-                            className="px-3.5 py-2.5 text-left font-bold text-zinc-500 uppercase tracking-wider text-[10px]"
+                            className="px-3.5 py-2.5 text-left font-bold text-zinc-500 uppercase tracking-wider text-xs"
                           >
                             {h}
                           </th>
@@ -249,10 +249,10 @@ export default function FresherWelcomePage({
                     key={key}
                     className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/60 dark:border-zinc-800/60"
                   >
-                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-0.5">
+                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-0.5">
                       {key.replace(/([A-Z])/g, " $1")}
                     </p>
-                    <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">{String(val)}</p>
+                    <p className="break-words text-xs font-bold text-zinc-900 dark:text-white">{String(val)}</p>
                   </div>
                 ))}
               </div>
@@ -271,7 +271,7 @@ export default function FresherWelcomePage({
                   <h2 className="text-sm font-bold text-zinc-900 dark:text-white font-outfit">
                     {acknowledgementData?.title || "Onboarding Documents Checklist"}
                   </h2>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Track required document submissions</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Track required document submissions</p>
                 </div>
               </div>
               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
@@ -300,12 +300,15 @@ export default function FresherWelcomePage({
                       >
                         <FileText size={14} />
                       </div>
-                      <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 line-clamp-2">
+                      <p
+                        title={doc.documentName}
+                        className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 line-clamp-2"
+                      >
                         {doc.documentName}
                       </p>
                     </div>
                     <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase shrink-0 ${isSubmitted ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/10 text-amber-600 dark:text-amber-400"}`}
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold uppercase shrink-0 ${isSubmitted ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/10 text-amber-600 dark:text-amber-400"}`}
                     >
                       {isSubmitted && <Check size={11} />}
                       {doc.status || (isSubmitted ? "Submitted" : "Pending")}
@@ -326,7 +329,7 @@ export default function FresherWelcomePage({
               <h2 className="text-sm font-bold text-zinc-900 dark:text-white font-outfit">
                 University Portals & Quick Links
               </h2>
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Direct shortcuts to official VIT portals</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">Direct shortcuts to official VIT portals</p>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -346,7 +349,7 @@ export default function FresherWelcomePage({
                 <p className="text-xs font-bold text-zinc-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                   VTOP Student Portal
                 </p>
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">vtopcc.vit.ac.in</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">vtopcc.vit.ac.in</p>
               </div>
             </a>
             {resources.map((r) => {
@@ -371,7 +374,7 @@ export default function FresherWelcomePage({
                     className="col-span-full p-4 rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/60 dark:border-zinc-800/60 space-y-1"
                   >
                     <h3 className="text-xs font-bold text-zinc-900 dark:text-white">{r.title}</h3>
-                    {r.description && <p className="text-[11px] text-zinc-500">{r.description}</p>}
+                    {r.description && <p className="text-xs text-zinc-500">{r.description}</p>}
                     {r.content && (
                       <p className="text-xs text-zinc-600 dark:text-zinc-400 whitespace-pre-line">{r.content}</p>
                     )}
@@ -396,11 +399,14 @@ export default function FresherWelcomePage({
                     />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-zinc-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
+                    <p
+                      title={r.title}
+                      className="text-xs font-bold text-zinc-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1"
+                    >
                       {r.title}
                     </p>
                     {r.description && (
-                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 line-clamp-1 mt-0.5">
+                      <p title={r.description} className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1 mt-0.5">
                         {r.description}
                       </p>
                     )}

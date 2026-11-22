@@ -49,8 +49,8 @@ export default function ExportDossierWidget({
           <FileText className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <h4 className="text-sm font-bold text-text-heading">Export Dossier</h4>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <h4 className="text-balance text-sm font-bold text-text-heading">Export Dossier</h4>
+          <p className="text-pretty mt-0.5 text-xs text-muted-foreground">
             Choose a format and save the timetable for sharing or printing.
           </p>
         </div>
@@ -59,11 +59,11 @@ export default function ExportDossierWidget({
       <div className="grid grid-cols-1 gap-x-5 gap-y-5 @lg:grid-cols-2">
         <div className="space-y-2.5">
           <div>
-            <h5 className="text-xs font-bold text-text-heading">HTML dossier</h5>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">A standalone, copyable course report.</p>
+            <h5 className="text-balance text-xs font-bold text-text-heading">HTML dossier</h5>
+            <p className="mt-0.5 text-[12px] text-muted-foreground">A standalone, copyable course report.</p>
           </div>
           <div role="group" aria-label="HTML dossier theme" className="space-y-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Theme</span>
+            <span className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Theme</span>
             <SegmentedControl
               value={themeChoice}
               onChange={setThemeChoice}
@@ -90,12 +90,12 @@ export default function ExportDossierWidget({
 
         <div className="space-y-2.5 border-t border-border-strong/40 pt-4 @lg:border-l @lg:border-t-0 @lg:pl-5 @lg:pt-0">
           <div>
-            <h5 className="text-xs font-bold text-text-heading">Timetable image</h5>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">Pick the layout and image format.</p>
+            <h5 className="text-balance text-xs font-bold text-text-heading">Timetable image</h5>
+            <p className="mt-0.5 text-[12px] text-muted-foreground">Pick the layout and image format.</p>
           </div>
           <div className="grid grid-cols-1 gap-2 @sm:grid-cols-[minmax(0,1fr)_auto] @sm:items-center">
             <div role="group" aria-label="Image layout" className="min-w-0 space-y-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Layout</span>
+              <span className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Layout</span>
               <SegmentedControl
                 value={imageLayout}
                 onChange={setImageLayout}
@@ -109,7 +109,7 @@ export default function ExportDossierWidget({
               />
             </div>
             <div role="group" aria-label="Image format" className="space-y-1 @sm:w-36">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Format</span>
+              <span className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Format</span>
               <SegmentedControl
                 value={imageFormat}
                 onChange={setImageFormat}
@@ -147,7 +147,7 @@ export default function ExportDossierWidget({
           </span>
           <span className="min-w-0">
             <span className="block text-xs font-semibold text-text-heading">Calendar file</span>
-            <span className="block text-[10px] text-muted-foreground">iCal · active timetable</span>
+            <span className="block text-[12px] text-muted-foreground">iCal · active timetable</span>
           </span>
         </button>
         <button
@@ -161,7 +161,7 @@ export default function ExportDossierWidget({
           </span>
           <span className="min-w-0">
             <span className="block text-xs font-semibold text-text-heading">Backup JSON</span>
-            <span className="block text-[10px] text-muted-foreground">All saved timetables</span>
+            <span className="block text-[12px] text-muted-foreground">All saved timetables</span>
           </span>
         </button>
       </div>

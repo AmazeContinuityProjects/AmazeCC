@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { DAYS } from "@/lib/ffcsConstants";
-import { getTimetableSchema } from "@/lib/campusSchema";
+import { FFCS_SCHEMA } from "@/lib/ffcsTimetableData";
 import { ensureLunchPeriod } from "@/lib/slots";
 import { TimetablePeriod } from "@/lib/ffcsTypes";
 import { RotateCcw } from "lucide-react";
@@ -77,7 +77,7 @@ export default function AutoBlockingCard({
     currentDayData.eveningLab.length > 0 && currentDayData.eveningLab.every((s) => effectiveBlockedSlots.has(s));
   const dayAllBlocked = currentDayData.all.length > 0 && currentDayData.all.every((s) => effectiveBlockedSlots.has(s));
 
-  const schema = getTimetableSchema();
+  const schema = FFCS_SCHEMA;
   const theoryPeriods = ensureLunchPeriod(schema.theory as TimetablePeriod[]);
   const labPeriods = ensureLunchPeriod(schema.lab as TimetablePeriod[]);
 
@@ -90,10 +90,10 @@ export default function AutoBlockingCard({
       <div className="shrink-0 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h3 className="text-sm font-black text-white uppercase tracking-wider font-outfit">
+            <h3 className="text-balance text-sm font-black text-white uppercase tracking-wider font-outfit">
               4. Slot &amp; Day Blocking
             </h3>
-            <p className="text-xs text-zinc-400">
+            <p className="text-pretty text-xs text-zinc-400">
               Rule out whole days or specific periods. Tap any slot in the vertical timetable below to block theory or
               lab independently.
             </p>
@@ -102,7 +102,7 @@ export default function AutoBlockingCard({
             <button
               type="button"
               onClick={handleClearAllBlocks}
-              className="text-[11px] font-bold text-rose-400 hover:text-rose-300 transition-colors cursor-pointer shrink-0 flex items-center gap-1"
+              className="text-[12px] font-bold text-rose-400 hover:text-rose-300 transition-colors cursor-pointer shrink-0 flex items-center gap-1"
             >
               <RotateCcw className="w-3 h-3" />
               <span>Clear All ({effectiveBlockedSlots.size})</span>
@@ -130,7 +130,7 @@ export default function AutoBlockingCard({
               >
                 <span>{d.name}</span>
                 {blockedInDay > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-md bg-rose-500/30 text-rose-300 text-[10px] font-mono">
+                  <span className="px-1.5 py-0.2 rounded-md bg-rose-500/30 text-rose-300 text-[12px] font-mono tabular-nums">
                     {blockedInDay}
                   </span>
                 )}
@@ -144,7 +144,7 @@ export default function AutoBlockingCard({
           <button
             type="button"
             onClick={() => handleToggleDayBlock(blockingActiveDay, "morning_theory")}
-            className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
+            className={`text-[12px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
               morningTheoryBlocked
                 ? "bg-rose-600 text-white border-rose-500 shadow-xs"
                 : "bg-zinc-950/60 border-zinc-800 text-zinc-300 hover:border-zinc-700"
@@ -156,7 +156,7 @@ export default function AutoBlockingCard({
           <button
             type="button"
             onClick={() => handleToggleDayBlock(blockingActiveDay, "morning_lab")}
-            className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
+            className={`text-[12px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
               morningLabBlocked
                 ? "bg-rose-600 text-white border-rose-500 shadow-xs"
                 : "bg-zinc-950/60 border-zinc-800 text-zinc-300 hover:border-zinc-700"
@@ -168,7 +168,7 @@ export default function AutoBlockingCard({
           <button
             type="button"
             onClick={() => handleToggleDayBlock(blockingActiveDay, "evening_theory")}
-            className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
+            className={`text-[12px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
               eveningTheoryBlocked
                 ? "bg-rose-600 text-white border-rose-500 shadow-xs"
                 : "bg-zinc-950/60 border-zinc-800 text-zinc-300 hover:border-zinc-700"
@@ -180,7 +180,7 @@ export default function AutoBlockingCard({
           <button
             type="button"
             onClick={() => handleToggleDayBlock(blockingActiveDay, "evening_lab")}
-            className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
+            className={`text-[12px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
               eveningLabBlocked
                 ? "bg-rose-600 text-white border-rose-500 shadow-xs"
                 : "bg-zinc-950/60 border-zinc-800 text-zinc-300 hover:border-zinc-700"
@@ -192,7 +192,7 @@ export default function AutoBlockingCard({
           <button
             type="button"
             onClick={() => handleToggleDayBlock(blockingActiveDay, "all")}
-            className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
+            className={`text-[12px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
               dayAllBlocked
                 ? "bg-rose-600 text-white border-rose-500 shadow-xs"
                 : "bg-zinc-950/60 border-zinc-800 text-zinc-300 hover:border-zinc-700"
@@ -204,7 +204,7 @@ export default function AutoBlockingCard({
           <button
             type="button"
             onClick={() => handleClearDayBlocks(blockingActiveDay)}
-            className="text-[11px] font-bold px-2.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-all cursor-pointer"
+            className="text-[12px] font-bold px-2.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-all cursor-pointer"
           >
             Reset Day
           </button>
@@ -213,9 +213,9 @@ export default function AutoBlockingCard({
 
       {/* Visual Interactive Vertical Timetable */}
       <div className="flex-1 min-h-[220px] max-h-[360px] overflow-auto rounded-2xl bg-zinc-950/70 border border-zinc-800/80 p-2 custom-scrollbar">
-        <div className="text-[10px] text-zinc-500 font-bold mb-1.5 px-1 flex items-center justify-between">
+        <div className="text-[12px] text-zinc-500 font-bold mb-1.5 px-1 flex items-center justify-between">
           <span>INTERACTIVE VERTICAL TIMETABLE — TAP ANY CELL TO TOGGLE BLOCK</span>
-          <span className="text-rose-400 font-mono">{effectiveBlockedSlots.size} slots blocked</span>
+          <span className="text-rose-400 font-mono tabular-nums">{effectiveBlockedSlots.size} slots blocked</span>
         </div>
         <VerticalTimetableGrid
           courses={[]}

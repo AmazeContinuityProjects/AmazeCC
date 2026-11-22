@@ -24,9 +24,7 @@ import {
 import type { CabShareUser } from "@/types/storage";
 import SelectField from "../../shared/primitives/SelectField";
 import { ListSkeleton } from "../../shared/primitives";
-import { FIELD_INPUT, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
-
-const FIELD_LABEL = "block text-[10px] font-black uppercase tracking-wider text-text-muted";
+import { FIELD_INPUT, FIELD_LABEL, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 
 /** Label + icon-led control, the one wrapper the date/time/seats/tolerance share. */
 // Descendant (not `> child`) selectors: `SelectField` renders its own wrapper
@@ -156,8 +154,10 @@ export default function CreateTrip({
           <MapPin className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <h2 className="text-base font-black text-text-heading font-outfit tracking-tight">Post a ride</h2>
-          <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium leading-relaxed mt-0.5">
+          <h2 className="text-balance text-base font-black text-text-heading font-outfit tracking-tight">
+            Post a ride
+          </h2>
+          <p className="text-pretty text-xs text-text-secondary dark:text-text-muted font-medium leading-relaxed mt-0.5">
             Add your route and timing so others can request to share the cab.
           </p>
         </div>

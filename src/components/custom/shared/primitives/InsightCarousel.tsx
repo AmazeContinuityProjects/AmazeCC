@@ -29,14 +29,12 @@ import { useHorizontalSwipe } from "./useHorizontalSwipe";
  */
 
 const LABEL =
-  "text-[10px] sm:text-xs font-bold uppercase tracking-wider text-text-muted dark:text-text-secondary font-outfit truncate";
-const BADGE =
-  "text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0";
-const SUBLINE =
-  "text-[10.5px] sm:text-xs text-text-secondary dark:text-text-muted font-medium truncate";
+  "text-xs font-bold uppercase tracking-wider text-text-muted dark:text-text-secondary font-outfit truncate";
+const BADGE = "text-xs font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0";
+const SUBLINE = "text-xs text-text-secondary dark:text-text-muted font-medium truncate";
 const HEADLINE: Record<string, string> = {
-  sm: "text-2xl sm:text-3xl leading-tight",
-  lg: "text-3xl sm:text-4xl leading-none",
+  sm: "text-2xl leading-tight tabular-nums",
+  lg: "text-[32px] leading-none tabular-nums",
 };
 const DOT_ACTIVE = "w-3 bg-indigo-500";
 const DOT_IDLE = "w-1.5 bg-border-muted dark:bg-surface-hover";
@@ -116,9 +114,7 @@ export function InsightCarousel({
 
   const tone = slide.tone;
   const valueTone =
-    !tone || tone === "neutral" || tone === "default"
-      ? "text-text-heading"
-      : TONE_TEXT[tone] ?? "text-text-heading";
+    !tone || tone === "neutral" || tone === "default" ? "text-text-heading" : (TONE_TEXT[tone] ?? "text-text-heading");
 
   // The tile is a div, not a button: `interactiveDots` needs real sibling
   // buttons and a button-inside-button is invalid HTML (and swallows the dot
@@ -131,12 +127,11 @@ export function InsightCarousel({
       className={cn(
         TILE,
         height,
-        slideClickable &&
-          "transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer",
+        slideClickable && "transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer",
         !slideClickable && "cursor-default",
         // Ours to pan horizontally; the page keeps its own vertical scroll.
         swipe.className,
-        className
+        className,
       )}
       onMouseEnter={() => {
         if (!pauseOnHover || !swipeable) return;
@@ -163,14 +158,7 @@ export function InsightCarousel({
       <div className="flex items-center justify-between gap-1 relative z-10 pointer-events-none">
         <span className={LABEL}>{slide.label}</span>
         {slide.badge ? (
-          <span
-            className={cn(
-              BADGE,
-              slide.badgeClassName ?? TONE_BADGE[tone] ?? TONE_BADGE.zinc
-            )}
-          >
-            {slide.badge}
-          </span>
+          <span className={cn(BADGE, slide.badgeClassName ?? TONE_BADGE[tone] ?? TONE_BADGE.zinc)}>{slide.badge}</span>
         ) : null}
       </div>
 
@@ -182,7 +170,7 @@ export function InsightCarousel({
             HEADLINE[headlineSize],
             valueTone,
             slide.valueClassName,
-            slide.blur && `select-none ${slide.blur}`
+            slide.blur && `select-none ${slide.blur}`,
           )}
         >
           {slide.value}
@@ -190,11 +178,7 @@ export function InsightCarousel({
       </div>
 
       <div className="flex items-center justify-between gap-2 relative z-10">
-        {slide.sub ? (
-          <p className={cn(SUBLINE, "pointer-events-none")}>{slide.sub}</p>
-        ) : (
-          <span />
-        )}
+        {slide.sub ? <p className={cn(SUBLINE, "pointer-events-none")}>{slide.sub}</p> : <span />}
         <div className="flex items-center gap-2 shrink-0">
           {footerRight}
           {slides.length > 1 ? (
@@ -205,21 +189,15 @@ export function InsightCarousel({
                     key={s.id}
                     type="button"
                     onClick={() => carousel.go(i)}
-                    aria-label={`Show ${
-                      s.dotLabel ??
-                      (typeof s.label === "string" ? s.label : `slide ${i + 1}`)
-                    }`}
+                    aria-label={`Show ${s.dotLabel ?? (typeof s.label === "string" ? s.label : `slide ${i + 1}`)}`}
                     className={cn(
                       "h-1.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong dark:focus-visible:ring-text-secondary",
-                      i === carousel.index ? DOT_ACTIVE : DOT_IDLE
+                      i === carousel.index ? DOT_ACTIVE : DOT_IDLE,
                     )}
                   />
                 ) : (
-                  <span
-                    key={s.id}
-                    className={cn("h-1.5 rounded-full", i === carousel.index ? DOT_ACTIVE : DOT_IDLE)}
-                  />
-                )
+                  <span key={s.id} className={cn("h-1.5 rounded-full", i === carousel.index ? DOT_ACTIVE : DOT_IDLE)} />
+                ),
               )}
             </span>
           ) : null}

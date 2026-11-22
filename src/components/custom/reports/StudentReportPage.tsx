@@ -1,5 +1,6 @@
 "use client";
 
+import { TEXT_BLOCK } from "@/lib/uiTokens";
 import { useEffect, useMemo, useState } from "react";
 import { Download, RotateCw, ShieldCheck, FileText, FileJson2, Code2, FileArchive, ChevronRight } from "lucide-react";
 import PageShell from "@/components/custom/shared/primitives/PageShell";
@@ -115,7 +116,6 @@ function dateLabel(value: unknown): string {
   const parsed = new Date(String(value));
   return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleDateString("en-IN");
 }
-
 
 function normalizedPhoto(value: unknown): string {
   if (typeof value !== "string" || !value) return "";
@@ -494,19 +494,22 @@ export default function StudentReportPage() {
     Record<string, { review: any; profile: FacultyDirectoryProfile | null; bundle: VitfacProfileBundle | null }>
   >({});
   const [mode, setMode] = useState<"color" | "greyscale">("color");
+  // The fourth field groups the ten switches into three short sets so the
+  // customiser reads as a few decisions, not a wall of toggles.
   const segmentOptions = [
-    ["overview", "Academic performance overview", "Summary, comparisons, and academic calendar"],
-    ["curriculum", "Curriculum and credit progress", "Course baskets and degree requirements"],
-    ["attendance", "Current semester attendance", "Subject summary and datewise register"],
-    ["od", "On Duty records", "OD usage comparison and official records"],
-    ["exams", "Current semester exam schedule", "CAT and FAT schedules"],
-    ["subjects", "Current semester subject dossiers", "Assessments, predictions, and faculty details"],
-    ["history", "Archived academic records", "Previous semesters and complete grade history"],
-    ["events", "Registered events", "Event registrations and payment status"],
-    ["finance", "Financial records", "Dues, receipts, and wallet information"],
-    ["services", "Other student services", "Transport, library, and Moodle details"],
+    ["overview", "Academic performance overview", "Summary, comparisons, and academic calendar", "Academics"],
+    ["curriculum", "Curriculum and credit progress", "Course baskets and degree requirements", "Academics"],
+    ["subjects", "Current semester subject dossiers", "Assessments, predictions, and faculty details", "Academics"],
+    ["history", "Archived academic records", "Previous semesters and complete grade history", "Academics"],
+    ["attendance", "Current semester attendance", "Subject summary and datewise register", "Attendance & exams"],
+    ["od", "On Duty records", "OD usage comparison and official records", "Attendance & exams"],
+    ["exams", "Current semester exam schedule", "CAT and FAT schedules", "Attendance & exams"],
+    ["events", "Registered events", "Event registrations and payment status", "Campus & admin"],
+    ["finance", "Financial records", "Dues, receipts, and wallet information", "Campus & admin"],
+    ["services", "Other student services", "Transport, library, and Moodle details", "Campus & admin"],
   ] as const;
   type SegmentKey = (typeof segmentOptions)[number][0];
+  const segmentGroups = ["Academics", "Attendance & exams", "Campus & admin"] as const;
   const [segments, setSegments] = useState<Record<SegmentKey, boolean>>({
     overview: true,
     curriculum: true,
@@ -519,8 +522,21 @@ export default function StudentReportPage() {
     finance: true,
     services: true,
   });
+  const includedTitles = segmentOptions.filter(([key]) => segments[key]).map(([, title]) => title);
   const [isDownloading, setIsDownloading] = useState(false);
   const [exportError, setExportError] = useState("");
+  const [exportSuccess, setExportSuccess] = useState("");
+  /**
+   * The hidden 1120px canvas is the heaviest thing on this page: a full report
+   * article with dozens of tables, charts and calendar cells. Mount it only
+   * when an export is requested, then clone that single instance for both PDF
+   * and HTML. Provenance and `generatedAt` still come from the one snapshot, so
+   * delaying the mount changes only when the DOM is built, not what it says.
+   */
+  const [exportReady, setExportReady] = useState(false);
+  const [pendingExport, setPendingExport] = useState<"pdf" | "html" | null>(null);
+  const [isPreparing, setIsPreparing] = useState(false);
+  const [exportProgress, setExportProgress] = useState("");
   const reportMarkup = () => {
     const root = document.querySelector("#student-report-preview-source #student-report");
     const article = root?.querySelector("article");
@@ -567,7 +583,9 @@ export default function StudentReportPage() {
     { attended: 0, total: 0 },
   );
   const percentage = totals.total ? ((totals.attended / totals.total) * 100).toFixed(1) : "—";
-  const calendarRows = academicCalendar(snapshot?.calendar);
+  // Memoise the derived rows so `calendarMonths` is not invalidated on every
+  // render by a freshly allocated array with identical contents.
+  const calendarRows = useMemo(() => academicCalendar(snapshot?.calendar), [snapshot?.calendar]);
   const calendarMonths = useMemo(() => {
     const grouped = new Map<
       string,
@@ -680,26 +698,32 @@ export default function StudentReportPage() {
     if (!markup) return;
     setIsDownloading(true);
     setExportError("");
+    setExportSuccess("");
+    setExportProgress("Preparing PDF…");
     try {
       const html = `<div class="report-capture"><style>${markup.styles}.report-capture{width:820px;background:#fff}.mb-4{margin-bottom:1rem}.mb-3{margin-bottom:.75rem}.mb-1{margin-bottom:.25rem}.font-bold{font-weight:700}.text-xs{font-size:12px}.text-center{text-align:center}.whitespace-pre-wrap{white-space:pre-wrap}.break-words{overflow-wrap:anywhere}.grid{display:grid}.place-items-center{place-items:center}</style><main id="student-report" class="student-report ${mode}">${markup.article.outerHTML}</main></div>`;
       await downloadStudentReportPdf(
         html,
         `AmazeCC-Student-Report-${new Date().toISOString().slice(0, 10)}.pdf`,
         mode === "greyscale",
+        (completed, total) => setExportProgress(`Preparing PDF — section ${completed} of ${total}`),
+      );
+      setExportSuccess(
+        `PDF download started — ${includedTitles.length} of ${segmentOptions.length} sections included.`,
       );
     } catch (error) {
       console.error("Failed to generate student report PDF:", error);
       setExportError("PDF generation failed. Refresh the report and try again.");
     } finally {
       setIsDownloading(false);
+      setExportProgress("");
     }
-  };
-  const downloadHtml = () => {
-    void createHtmlDownload();
   };
   const createHtmlDownload = async () => {
     const markup = reportMarkup();
     if (!markup) return;
+    setExportError("");
+    setExportSuccess("");
     await embedReportImages(markup.article);
     const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AmazeCC Student Academic Report</title><style>${markup.styles}.mb-4{margin-bottom:1rem}.mb-3{margin-bottom:.75rem}.mb-1{margin-bottom:.25rem}.font-bold{font-weight:700}.text-xs{font-size:12px}.text-center{text-align:center}.whitespace-pre-wrap{white-space:pre-wrap}.break-words{overflow-wrap:anywhere}.grid{display:grid}.place-items-center{place-items:center}</style></head><body><main id="student-report" class="student-report ${mode}">${markup.article.outerHTML}</main></body></html>`;
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
@@ -709,9 +733,49 @@ export default function StudentReportPage() {
     link.download = `AmazeCC-Student-Report-${new Date().toISOString().slice(0, 10)}.html`;
     link.click();
     URL.revokeObjectURL(url);
+    setExportSuccess(`HTML download started — ${includedTitles.length} of ${segmentOptions.length} sections included.`);
   };
+
+  /**
+   * Mount the canvas on demand. The first export schedules the mount at idle
+   * so the settings page is interactive first; the effect below runs the
+   * pending download once the article has actually committed to the DOM.
+   */
+  const requestExport = (kind: "pdf" | "html") => {
+    if (exportReady) {
+      if (kind === "pdf") void downloadPdf();
+      else void createHtmlDownload();
+      return;
+    }
+    setPendingExport(kind);
+    setIsPreparing(true);
+    setExportError("");
+    setExportSuccess("");
+    setExportProgress("Preparing…");
+    const mount = () => setExportReady(true);
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      (window as any).requestIdleCallback(mount, { timeout: 800 });
+    } else {
+      setTimeout(mount, 0);
+    }
+  };
+
+  useEffect(() => {
+    if (!exportReady || !pendingExport) return;
+    const kind = pendingExport;
+    setPendingExport(null);
+    setIsPreparing(false);
+    // The download helpers are deliberately not dependencies: they set the
+    // very state this effect watches, and this must run once per request.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (kind === "pdf") void downloadPdf();
+    else void createHtmlDownload();
+  }, [exportReady, pendingExport]);
+
   const downloadJson = () => {
     if (!snapshot) return;
+    setExportError("");
+    setExportSuccess("");
     const payload = {
       schema: "amazecc.student-report.v1",
       generatedAt: snapshot.collectedAt.toISOString(),
@@ -775,6 +839,7 @@ export default function StudentReportPage() {
     link.download = `AmazeCC-Student-Report-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     URL.revokeObjectURL(url);
+    setExportSuccess(`JSON download started — ${includedTitles.length} of ${segmentOptions.length} sections included.`);
   };
 
   return (
@@ -787,15 +852,30 @@ export default function StudentReportPage() {
       >
         <section className="space-y-3">
           <SectionHeader icon={Download} title="Download report" />
+          {/* Collapsed preview of what will actually land in the file, so the
+              format buttons below are never a blind export. */}
+          <details className="rounded-2xl border border-border-muted bg-surface px-3.5 py-3 text-sm">
+            <summary className="cursor-pointer font-bold text-text-heading">
+              Sections included ({includedTitles.length} of {segmentOptions.length})
+            </summary>
+            <p className="mt-2 text-xs leading-relaxed text-text-secondary">
+              {includedTitles.length
+                ? includedTitles.join(" · ")
+                : "None selected — pick at least one section below before exporting."}
+            </p>
+          </details>
           <ListShell className="divide-y divide-border-muted">
             {[
               {
                 key: "pdf",
                 title: "Download as PDF",
-                description: isDownloading ? "Preparing your report…" : "Print ready, with color or greyscale styling",
+                description:
+                  isDownloading || isPreparing
+                    ? exportProgress || "Preparing your report…"
+                    : "Print ready, with color or greyscale styling",
                 icon: FileText,
-                action: downloadPdf,
-                disabled: isDownloading || !snapshot,
+                action: () => requestExport("pdf"),
+                disabled: isDownloading || isPreparing || !snapshot,
                 tint: "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:text-rose-300 dark:border-rose-900",
               },
               {
@@ -810,10 +890,10 @@ export default function StudentReportPage() {
               {
                 key: "html",
                 title: "Download as HTML",
-                description: "Formatted report with images embedded for offline viewing",
+                description: isPreparing ? "Preparing…" : "Formatted report with images embedded for offline viewing",
                 icon: Code2,
-                action: downloadHtml,
-                disabled: !snapshot,
+                action: () => requestExport("html"),
+                disabled: isPreparing || !snapshot,
                 tint: "bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-300 dark:border-indigo-900",
               },
             ].map(({ key, title, description, icon: Icon, action, disabled, tint }) => (
@@ -822,14 +902,14 @@ export default function StudentReportPage() {
                 type="button"
                 onClick={action}
                 disabled={disabled}
-                className="group flex w-full items-center gap-3.5 p-3.5 text-left transition-colors hover:bg-surface-secondary/70 disabled:cursor-not-allowed disabled:opacity-50 sm:p-4"
+                className="group flex w-full items-center gap-3.5 p-3.5 text-left transition-colors hover:bg-surface-secondary/70 active:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-50 sm:p-4"
               >
                 <span
                   className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-transform group-hover:scale-105 ${tint}`}
                 >
                   <Icon className="h-5 w-5" />
                 </span>
-                <span className="min-w-0 flex-1">
+                <span className={TEXT_BLOCK}>
                   <span className="block truncate text-sm font-bold text-text-heading group-hover:text-indigo-600">
                     {title}
                   </span>
@@ -859,23 +939,32 @@ export default function StudentReportPage() {
               </button>
             }
           />
-          <ListShell className="divide-y divide-border-muted">
-            {segmentOptions.map(([key, title, description]) => (
-              <SettingRow
-                key={key}
-                title={title}
-                description={description}
-                control={
-                  <Switch
-                    checked={segments[key]}
-                    onCheckedChange={(checked) => setSegments((current) => ({ ...current, [key]: checked }))}
-                    size="md"
-                    label={title}
-                  />
-                }
-              />
+          <div className="space-y-4">
+            {segmentGroups.map((group) => (
+              <div key={group} className="space-y-2">
+                <p className="px-1 text-xs font-black uppercase tracking-wider text-text-muted">{group}</p>
+                <ListShell className="divide-y divide-border-muted">
+                  {segmentOptions
+                    .filter(([, , , category]) => category === group)
+                    .map(([key, title, description]) => (
+                      <SettingRow
+                        key={key}
+                        title={title}
+                        description={description}
+                        control={
+                          <Switch
+                            checked={segments[key]}
+                            onCheckedChange={(checked) => setSegments((current) => ({ ...current, [key]: checked }))}
+                            size="md"
+                            label={title}
+                          />
+                        }
+                      />
+                    ))}
+                </ListShell>
+              </div>
             ))}
-          </ListShell>
+          </div>
           <div className="flex flex-wrap items-center justify-between gap-3 px-1">
             <label className="flex items-center gap-2 text-xs text-text-secondary">
               PDF color{" "}
@@ -891,7 +980,7 @@ export default function StudentReportPage() {
             <button
               type="button"
               onClick={refresh}
-              className="inline-flex items-center gap-2 rounded-lg border border-border-muted bg-surface px-3 py-2 text-xs font-bold text-text-heading hover:bg-surface-secondary"
+              className="inline-flex items-center gap-2 min-h-11 rounded-lg border border-border-muted bg-surface px-3 py-2 text-xs font-bold text-text-heading hover:bg-surface-secondary active:bg-surface-tertiary"
             >
               <RotateCw size={14} />
               Refresh data
@@ -901,6 +990,18 @@ export default function StudentReportPage() {
               Generated on this device
             </span>
           </div>
+          {exportProgress && (
+            <p role="status" className="flex items-center gap-2 text-sm font-medium text-text-secondary">
+              <ShieldCheck size={14} />
+              {exportProgress}
+            </p>
+          )}
+          {exportSuccess && (
+            <p role="status" className="flex items-center gap-2 text-sm font-medium text-success">
+              <ShieldCheck size={14} />
+              {exportSuccess}
+            </p>
+          )}
           {exportError && (
             <p role="alert" className="text-sm text-red-700">
               {exportError}
@@ -922,6 +1023,17 @@ export default function StudentReportPage() {
         }}
       >
         <main id="student-report" className={`student-report ${mode}`}>
+          {/*
+            Print-only surface: this hidden 1120px canvas is the PDF export,
+            not the live app UI. It ships its own self-contained stylesheet
+            (Arial/Georgia, its own ink/paper tokens, page breaks) — that
+            serif/print pairing is a deliberate exception to the app's DM Sans
+            / Geist type system. Off-ramp headline sizes are mapped to the
+            named steps here; the remaining 7–9px values in tables, calendars,
+            charts and the nested TOC are a documented exception — they are
+            laid out for pagination on a fixed print canvas, where 12px cells
+            would break the grid.
+          */}
           <style>{`
         .student-report{--ink:#172033;--muted:#596579;--line:#cbd2dc;--band:#eaf0f7;--paper:#fff;--accent:#173b67;color:var(--ink);background:var(--paper);font:14px/1.45 Arial,Helvetica,sans-serif;padding:clamp(16px,3vw,36px);max-width:1120px;margin:0 auto}
         .student-report.greyscale{--ink:#171717;--muted:#555;--line:#bdbdbd;--band:#ededed;--accent:#222}
@@ -929,25 +1041,25 @@ export default function StudentReportPage() {
         .report-controls{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:14px;border:1px solid var(--line);border-radius:10px;margin-bottom:20px;background:var(--band)}
         .report-controls button,.report-controls select{font:inherit;padding:8px 12px;border:1px solid var(--line);border-radius:7px;background:var(--paper);color:var(--ink)}
         .report-controls button{display:inline-flex;align-items:center;gap:7px;font-weight:700;cursor:pointer}.report-controls label{display:inline-flex;align-items:center;gap:6px}
-        .report-cover{position:relative;isolation:isolate;overflow:hidden;min-height:78vh;display:grid;grid-template-columns:1fr 150px;gap:24px;align-items:center;padding:clamp(30px,7vw,82px);margin:0 -1px 34px;border:1px solid color-mix(in srgb,var(--accent) 16%,white);border-radius:28px;background:radial-gradient(ellipse at 84% 16%,color-mix(in srgb,#f3bd61 42%,white),transparent 31%),radial-gradient(ellipse at 76% 79%,color-mix(in srgb,#60b8a5 30%,white),transparent 34%),linear-gradient(135deg,color-mix(in srgb,var(--accent) 10%,white),var(--paper) 72%)}.report-cover:before,.report-cover:after{content:"";position:absolute;z-index:-1;border-radius:50%;animation:report-bounce 5s ease-in-out infinite}.report-cover:before{width:210px;height:210px;right:17%;top:9%;background:color-mix(in srgb,#e4a7c6 45%,white)}.report-cover:after{width:120px;height:120px;right:4%;bottom:10%;background:color-mix(in srgb,#f3bd61 55%,white);animation-delay:-2.1s}.report-cover-copy{max-width:620px}.report-cover-eyebrow{font-size:11px!important;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)!important}.report-cover h1{font:700 clamp(38px,7vw,72px)/1.02 Georgia,serif;max-width:600px;margin:15px 0 22px;color:var(--accent)}.report-cover p{margin:6px 0;color:var(--muted)}.report-cover-student{font-size:17px!important;color:var(--ink)!important}.report-cover-chips{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0}.report-cover-chips span{padding:7px 12px;border:1px solid color-mix(in srgb,var(--accent) 20%,white);border-radius:999px;background:color-mix(in srgb,var(--paper) 82%,transparent);font-size:10px;font-weight:700;color:var(--accent);box-shadow:0 5px 14px #173b6715}.report-logo{position:absolute;left:24px;top:22px;width:44px;height:44px;object-fit:contain}.report-photo{width:132px;height:160px;object-fit:cover;border:5px solid white;border-radius:26px;box-shadow:0 18px 46px #173b6730;transform:rotate(3deg)}.report-cover-photo-placeholder{display:grid;place-items:center;text-align:center;background:color-mix(in srgb,var(--paper) 84%,transparent);color:var(--accent);font-weight:700}
+        .report-cover{position:relative;isolation:isolate;overflow:hidden;min-height:78vh;display:grid;grid-template-columns:1fr 150px;gap:24px;align-items:center;padding:clamp(30px,7vw,82px);margin:0 -1px 34px;border:1px solid color-mix(in srgb,var(--accent) 16%,white);border-radius:28px;background:radial-gradient(ellipse at 84% 16%,color-mix(in srgb,#f3bd61 42%,white),transparent 31%),radial-gradient(ellipse at 76% 79%,color-mix(in srgb,#60b8a5 30%,white),transparent 34%),linear-gradient(135deg,color-mix(in srgb,var(--accent) 10%,white),var(--paper) 72%)}.report-cover:before,.report-cover:after{content:"";position:absolute;z-index:-1;border-radius:50%;animation:report-bounce 5s ease-in-out infinite}.report-cover:before{width:210px;height:210px;right:17%;top:9%;background:color-mix(in srgb,#e4a7c6 45%,white)}.report-cover:after{width:120px;height:120px;right:4%;bottom:10%;background:color-mix(in srgb,#f3bd61 55%,white);animation-delay:-2.1s}.report-cover-copy{max-width:620px}.report-cover-eyebrow{font-size:12px!important;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)!important}.report-cover h1{font:700 clamp(38px,7vw,72px)/1.02 Georgia,serif;max-width:600px;margin:15px 0 22px;color:var(--accent)}.report-cover p{margin:6px 0;color:var(--muted)}.report-cover-student{font-size:20px!important;color:var(--ink)!important}.report-cover-chips{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0}.report-cover-chips span{padding:7px 12px;border:1px solid color-mix(in srgb,var(--accent) 20%,white);border-radius:999px;background:color-mix(in srgb,var(--paper) 82%,transparent);font-size:10px;font-weight:700;color:var(--accent);box-shadow:0 5px 14px #173b6715}.report-logo{position:absolute;left:24px;top:22px;width:44px;height:44px;object-fit:contain}.report-photo{width:132px;height:160px;object-fit:cover;border:5px solid white;border-radius:26px;box-shadow:0 18px 46px #173b6730;transform:rotate(3deg)}.report-cover-photo-placeholder{display:grid;place-items:center;text-align:center;background:color-mix(in srgb,var(--paper) 84%,transparent);color:var(--accent);font-weight:700}
         @keyframes report-bounce{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-18px) rotate(7deg)}}
-        .report-index{break-before:page;break-after:page;page-break-before:always;page-break-after:always;min-height:84vh;margin:0;padding:36px 28px;border:1px solid color-mix(in srgb,var(--accent) 18%,white);border-radius:22px;background:radial-gradient(ellipse at 100% 0%,color-mix(in srgb,#60b8a5 22%,white),transparent 35%),linear-gradient(145deg,var(--band),var(--paper) 72%);display:flex;flex-direction:column;justify-content:center}.report-index h2{font:700 26px Georgia,serif;color:var(--accent);margin:0 0 20px;text-align:center}.report-index ol{list-style:none;counter-reset:toc;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:0;padding:0}.report-index li{counter-increment:toc}.report-index a{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;background:var(--paper);color:var(--ink);text-decoration:none;border:1px solid color-mix(in srgb,var(--accent) 12%,white);font-size:11px}.report-index a:before{content:counter(toc,decimal-leading-zero);color:var(--accent);font-weight:700;font-size:10px}.report-index li ol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 7px;margin:4px 0 5px 15px}.report-index li ol a{padding:5px 8px;font-size:9px;background:color-mix(in srgb,var(--accent) 3%,white)}
+        .report-index{break-before:page;break-after:page;page-break-before:always;page-break-after:always;min-height:84vh;margin:0;padding:36px 28px;border:1px solid color-mix(in srgb,var(--accent) 18%,white);border-radius:22px;background:radial-gradient(ellipse at 100% 0%,color-mix(in srgb,#60b8a5 22%,white),transparent 35%),linear-gradient(145deg,var(--band),var(--paper) 72%);display:flex;flex-direction:column;justify-content:center}.report-index h2{font:700 24px Georgia,serif;color:var(--accent);margin:0 0 20px;text-align:center}.report-index ol{list-style:none;counter-reset:toc;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:0;padding:0}.report-index li{counter-increment:toc}.report-index a{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;background:var(--paper);color:var(--ink);text-decoration:none;border:1px solid color-mix(in srgb,var(--accent) 12%,white);font-size:12px}.report-index a:before{content:counter(toc,decimal-leading-zero);color:var(--accent);font-weight:700;font-size:12px}.report-index li ol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 7px;margin:4px 0 5px 15px}.report-index li ol a{padding:5px 8px;font-size:9px;background:color-mix(in srgb,var(--accent) 3%,white)}
         .report-logo{width:58px;height:58px;object-fit:contain}.report-photo{width:78px;height:92px;object-fit:cover;border:1px solid var(--line);border-radius:4px}
-        .report-cover h1{font-family:Georgia,serif;font-size:25px;line-height:1.15;margin:0 0 5px;color:var(--accent)}.report-cover p{margin:2px 0;color:var(--muted)}
-        .report-notice{font-size:11px;color:var(--muted);margin:14px 0 26px;padding:10px 12px;border-left:3px solid var(--line);background:var(--band)}.report-section{margin:34px 0 42px;padding-top:4px;break-inside:auto}.report-section h2{font:700 16px Georgia,serif;color:var(--accent);padding:8px 11px;margin:0 0 18px;background:var(--band);border-left:3px solid var(--accent);text-align:center}.report-section>*+*{margin-top:18px}.report-section h3{margin-top:26px}.report-section .report-chart{margin:18px 0 22px}
+        .report-cover h1{font-family:Georgia,serif;font-size:24px;line-height:1.15;margin:0 0 5px;color:var(--accent)}.report-cover p{margin:2px 0;color:var(--muted)}
+        .report-notice{font-size:12px;color:var(--muted);margin:14px 0 26px;padding:10px 12px;border-left:3px solid var(--line);background:var(--band)}.report-section{margin:34px 0 42px;padding-top:4px;break-inside:auto}.report-section h2{font:700 16px Georgia,serif;color:var(--accent);padding:8px 11px;margin:0 0 18px;background:var(--band);border-left:3px solid var(--accent);text-align:center}.report-section>*+*{margin-top:18px}.report-section h3{margin-top:26px}.report-section .report-chart{margin:18px 0 22px}
         .report-table-wrap{overflow-x:auto;border:1px solid color-mix(in srgb,var(--accent) 24%,white);border-radius:7px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:0;border-bottom:1px solid color-mix(in srgb,var(--accent) 14%,white);padding:7px 9px;text-align:left;vertical-align:top;overflow-wrap:anywhere}thead{display:table-header-group}th{background:color-mix(in srgb,var(--accent) 9%,white);color:var(--accent);font-weight:700;border-bottom:1px solid color-mix(in srgb,var(--accent) 25%,white)}tbody tr:nth-child(even){background:color-mix(in srgb,var(--accent) 3.5%,white)}tbody tr:last-child td{border-bottom:0}tr{break-inside:avoid}
-        .report-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin:16px 0}.report-summary div{border:1px solid var(--line);border-top:3px solid var(--accent);padding:11px 12px;background:var(--paper);min-height:58px}.report-summary strong{display:block;font:700 19px Georgia,serif}.report-summary span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-        .report-chart{border:1px solid var(--line);padding:12px;margin:10px 0 14px;break-inside:avoid}.report-chart h4{margin:0 0 9px;font:700 12px Georgia,serif;color:var(--accent)}.report-bars{display:flex;align-items:end;gap:5px;height:110px;border-bottom:1px solid var(--line);padding:0 4px;overflow:hidden}.report-bar-item{flex:1;min-width:16px;text-align:center;font-size:8px;color:var(--muted)}.report-bar-pair{height:86px;display:flex;align-items:end;justify-content:center;gap:2px}.report-bar{min-height:2px;background:#2d6a9f;border-radius:3px 3px 0 0;width:40%;max-width:13px}.report-bar.absent{background:#c55454}.report-chart-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:7px;font-size:9px;color:var(--muted)}.report-chart-legend span{display:inline-flex;align-items:center;gap:4px}.report-chart-legend i{display:inline-block;width:8px;height:8px;background:#2d6a9f}.report-chart-legend .absent-key{background:#c55454}.report-pie-layout{display:flex;align-items:center;gap:20px}.report-pie-disc{width:116px;height:116px;flex:0 0 116px;border-radius:50%;position:relative}.report-pie-disc:after{content:"";position:absolute;inset:30px;border-radius:50%;background:var(--paper);border:1px solid var(--line)}.report-pie-disc>i{display:none}.report-pie .report-chart-legend{display:grid}.report-month{break-before:page}.report-month h3,.report-subject h3,.report-curriculum-category h3{font:700 15px Georgia,serif;color:var(--accent);border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:16px}.report-subject{break-before:page;padding-top:8px}.report-subject>*+*{margin-top:18px}.report-subject h4,.report-curriculum-basket h4{font:700 12px Georgia,serif;color:var(--accent);margin:22px 0 9px;padding-bottom:5px;border-bottom:1px solid var(--line)}.report-faculty-card{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-left:4px solid var(--accent);padding:12px 14px;margin:14px 0;background:var(--band);break-inside:avoid}.report-faculty-card img,.report-faculty-placeholder{width:58px;height:68px;object-fit:cover;border:1px solid var(--line);background:var(--paper);flex:none}.report-faculty-placeholder{display:grid;place-items:center;font:700 18px Georgia,serif;color:var(--accent)}.report-faculty-card-copy{display:grid;gap:3px;flex:1}.report-faculty-card-copy strong{font:700 14px Georgia,serif;color:var(--accent)}.report-faculty-card-copy span,.report-faculty-card-stat span{font-size:10px;color:var(--muted)}.report-faculty-card-stat{text-align:right}.report-faculty-card-stat strong{display:block;font:700 18px Georgia,serif;color:var(--accent)}.report-curriculum-category{break-before:page}.report-curriculum-basket{margin-bottom:24px}
-        .report-empty{color:var(--muted);font-style:italic;font-size:12px}.report-foot{border-top:1px solid var(--line);padding-top:8px;margin-top:24px;color:var(--muted);font-size:10px}
-        .report-curriculum-section{break-before:page;page-break-before:always}.report-divider{position:relative;isolation:isolate;overflow:hidden;break-before:page;page-break-before:always;break-after:page;page-break-after:always;min-height:90vh;display:flex;flex-direction:column;justify-content:center;padding:48px;border:1px solid color-mix(in srgb,var(--accent) 20%,white);border-radius:32px;background:radial-gradient(ellipse at 13% 12%,color-mix(in srgb,#e4a7c6 33%,white),transparent 32%),linear-gradient(145deg,color-mix(in srgb,var(--accent) 10%,white),var(--paper) 65%);text-align:center;color:var(--accent)}.report-divider:before,.report-divider:after{content:"";position:absolute;z-index:-1;left:-10%;width:120%;height:24%;border-radius:48% 52% 0 0 / 24% 38% 0 0}.report-divider:before{bottom:-7%;background:color-mix(in srgb,#60b8a5 23%,white);transform:rotate(-3deg)}.report-divider:after{bottom:-12%;left:-14%;height:18%;background:color-mix(in srgb,#f3bd61 30%,white);transform:rotate(3deg)}.report-divider span{font-size:10px;letter-spacing:.16em}.report-divider h2{font:700 30px Georgia,serif;margin:14px 0}.report-divider p{color:var(--muted);font-size:13px}.report-calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:12px 0 22px}.report-calendar-weekday{padding:6px 3px;text-align:center;background:var(--band);color:var(--accent);font-weight:700;font-size:10px}.report-calendar-day{min-height:76px;padding:5px;border:1px solid color-mix(in srgb,var(--accent) 18%,white);background:var(--paper);font-size:9px}.report-calendar-day.empty{border-color:transparent;background:transparent}.report-calendar-day strong{display:block;margin-bottom:4px;color:var(--accent)}.report-calendar-day span{display:block;margin:2px 0;padding:2px 3px;background:var(--band);border-radius:3px;color:var(--ink);overflow-wrap:anywhere}.report-attendance-calendar{gap:3px;margin:12px 0 16px}.report-attendance-calendar .report-calendar-day{min-height:43px;padding:4px;border-radius:7px;font-size:8px}.report-attendance-calendar .report-calendar-weekday{padding:4px 2px;border-radius:5px;font-size:8px}.report-attendance-calendar .attendance-day.all-present{background:#eaf5ee;border-color:#c6e3d0}.report-attendance-calendar .attendance-day.has-absence{background:#fff0ed;border-color:#f1c9c1}.report-attendance-calendar .attendance-day.on-duty{background:#edf4fb;border-color:#ccdeef}.report-attendance-calendar .attendance-day span{background:transparent;font-size:7px}.report-grade-history-section{break-before:page;page-break-before:always}.report-overview-subheading{text-align:center;color:var(--accent);font:700 14px Georgia,serif;margin:24px 0 8px}.report-subject{border:1px solid color-mix(in srgb,var(--accent) 16%,white);border-radius:18px;background:linear-gradient(145deg,var(--paper),color-mix(in srgb,var(--accent) 3%,white));padding:18px 20px;margin:30px 0;box-shadow:0 8px 24px #173b6710}.report-subject h3{text-align:center}.report-subject h4{margin-top:24px}.report-faculty-card{border-radius:13px}.report-education-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin:12px 0}.report-education-card{display:flex;flex-direction:column;gap:5px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--accent) 13%,white);border-radius:10px;background:color-mix(in srgb,var(--accent) 3%,white);font-size:10px;line-height:1.4}.report-education-card strong{font:700 12px Georgia,serif;color:var(--accent)}.report-education-year{font-weight:700;color:var(--muted)}.report-grade-cards{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.report-grade-cards div{min-width:100px;padding:9px 12px;border-top:3px solid var(--accent);border-radius:8px;background:var(--band)}.report-grade-cards strong,.report-grade-cards span{display:block}.report-grade-cards strong{font:700 14px Georgia,serif;color:var(--accent)}.report-grade-cards span{font-size:8px;text-transform:uppercase;color:var(--muted)}.report-basket-index{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 16px}.report-basket-index span{padding:5px 10px;border:1px solid color-mix(in srgb,var(--accent) 16%,white);border-radius:999px;background:var(--band);font-size:9px;color:var(--accent)}.report-theme-group.critical .report-theme-pill{background:#fff0ed;border-color:#efb7ad;color:#842c20}.report-theme-group.critical .report-theme-pill b{color:#a82e20}
-        .report-theme-group{margin:14px 0}.report-theme-group>strong{display:block;font:700 11px Georgia,serif;color:var(--muted);margin-bottom:7px}.report-theme-list{display:flex;flex-wrap:wrap;gap:7px}.report-theme-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 9px;border:1px solid color-mix(in srgb,var(--accent) 17%,white);border-radius:999px;background:color-mix(in srgb,var(--accent) 6%,white);color:var(--ink);font-size:10px;line-height:1.3}.report-theme-group.positive .report-theme-pill{background:#eef7f2;border-color:#c8e4d4}.report-theme-group.critical .report-theme-pill{background:#fbf1ef;border-color:#ecd0cb}.report-theme-pill b{color:var(--accent);font-size:9px}
+        .report-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin:16px 0}.report-summary div{border:1px solid var(--line);border-top:3px solid var(--accent);padding:11px 12px;background:var(--paper);min-height:58px}.report-summary strong{display:block;font:700 20px Georgia,serif}.report-summary span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+        .report-chart{border:1px solid var(--line);padding:12px;margin:10px 0 14px;break-inside:avoid}.report-chart h4{margin:0 0 9px;font:700 12px Georgia,serif;color:var(--accent)}.report-bars{display:flex;align-items:end;gap:5px;height:110px;border-bottom:1px solid var(--line);padding:0 4px;overflow:hidden}.report-bar-item{flex:1;min-width:16px;text-align:center;font-size:8px;color:var(--muted)}.report-bar-pair{height:86px;display:flex;align-items:end;justify-content:center;gap:2px}.report-bar{min-height:2px;background:#2d6a9f;border-radius:3px 3px 0 0;width:40%;max-width:13px}.report-bar.absent{background:#c55454}.report-chart-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:7px;font-size:9px;color:var(--muted)}.report-chart-legend span{display:inline-flex;align-items:center;gap:4px}.report-chart-legend i{display:inline-block;width:8px;height:8px;background:#2d6a9f}.report-chart-legend .absent-key{background:#c55454}.report-pie-layout{display:flex;align-items:center;gap:20px}.report-pie-disc{width:116px;height:116px;flex:0 0 116px;border-radius:50%;position:relative}.report-pie-disc:after{content:"";position:absolute;inset:30px;border-radius:50%;background:var(--paper);border:1px solid var(--line)}.report-pie-disc>i{display:none}.report-pie .report-chart-legend{display:grid}.report-month{break-before:page}.report-month h3,.report-subject h3,.report-curriculum-category h3{font:700 16px Georgia,serif;color:var(--accent);border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:16px}.report-subject{break-before:page;padding-top:8px}.report-subject>*+*{margin-top:18px}.report-subject h4,.report-curriculum-basket h4{font:700 12px Georgia,serif;color:var(--accent);margin:22px 0 9px;padding-bottom:5px;border-bottom:1px solid var(--line)}.report-faculty-card{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-left:4px solid var(--accent);padding:12px 14px;margin:14px 0;background:var(--band);break-inside:avoid}.report-faculty-card img,.report-faculty-placeholder{width:58px;height:68px;object-fit:cover;border:1px solid var(--line);background:var(--paper);flex:none}.report-faculty-placeholder{display:grid;place-items:center;font:700 18px Georgia,serif;color:var(--accent)}.report-faculty-card-copy{display:grid;gap:3px;flex:1}.report-faculty-card-copy strong{font:700 14px Georgia,serif;color:var(--accent)}.report-faculty-card-copy span,.report-faculty-card-stat span{font-size:10px;color:var(--muted)}.report-faculty-card-stat{text-align:right}.report-faculty-card-stat strong{display:block;font:700 18px Georgia,serif;color:var(--accent)}.report-curriculum-category{break-before:page}.report-curriculum-basket{margin-bottom:24px}
+        .report-empty{color:var(--muted);font-style:italic;font-size:12px}.report-foot{border-top:1px solid var(--line);padding-top:8px;margin-top:24px;color:var(--muted);font-size:12px}
+        .report-curriculum-section{break-before:page;page-break-before:always}.report-divider{position:relative;isolation:isolate;overflow:hidden;break-before:page;page-break-before:always;break-after:page;page-break-after:always;min-height:90vh;display:flex;flex-direction:column;justify-content:center;padding:48px;border:1px solid color-mix(in srgb,var(--accent) 20%,white);border-radius:32px;background:radial-gradient(ellipse at 13% 12%,color-mix(in srgb,#e4a7c6 33%,white),transparent 32%),linear-gradient(145deg,color-mix(in srgb,var(--accent) 10%,white),var(--paper) 65%);text-align:center;color:var(--accent)}.report-divider:before,.report-divider:after{content:"";position:absolute;z-index:-1;left:-10%;width:120%;height:24%;border-radius:48% 52% 0 0 / 24% 38% 0 0}.report-divider:before{bottom:-7%;background:color-mix(in srgb,#60b8a5 23%,white);transform:rotate(-3deg)}.report-divider:after{bottom:-12%;left:-14%;height:18%;background:color-mix(in srgb,#f3bd61 30%,white);transform:rotate(3deg)}.report-divider span{font-size:12px;letter-spacing:.16em}.report-divider h2{font:700 24px Georgia,serif;margin:14px 0}.report-divider p{color:var(--muted);font-size:14px}.report-calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:12px 0 22px}.report-calendar-weekday{padding:6px 3px;text-align:center;background:var(--band);color:var(--accent);font-weight:700;font-size:10px}.report-calendar-day{min-height:76px;padding:5px;border:1px solid color-mix(in srgb,var(--accent) 18%,white);background:var(--paper);font-size:9px}.report-calendar-day.empty{border-color:transparent;background:transparent}.report-calendar-day strong{display:block;margin-bottom:4px;color:var(--accent)}.report-calendar-day span{display:block;margin:2px 0;padding:2px 3px;background:var(--band);border-radius:3px;color:var(--ink);overflow-wrap:anywhere}.report-attendance-calendar{gap:3px;margin:12px 0 16px}.report-attendance-calendar .report-calendar-day{min-height:43px;padding:4px;border-radius:7px;font-size:8px}.report-attendance-calendar .report-calendar-weekday{padding:4px 2px;border-radius:5px;font-size:8px}.report-attendance-calendar .attendance-day.all-present{background:#eaf5ee;border-color:#c6e3d0}.report-attendance-calendar .attendance-day.has-absence{background:#fff0ed;border-color:#f1c9c1}.report-attendance-calendar .attendance-day.on-duty{background:#edf4fb;border-color:#ccdeef}.report-attendance-calendar .attendance-day span{background:transparent;font-size:7px}.report-grade-history-section{break-before:page;page-break-before:always}.report-overview-subheading{text-align:center;color:var(--accent);font:700 14px Georgia,serif;margin:24px 0 8px}.report-subject{border:1px solid color-mix(in srgb,var(--accent) 16%,white);border-radius:18px;background:linear-gradient(145deg,var(--paper),color-mix(in srgb,var(--accent) 3%,white));padding:18px 20px;margin:30px 0;box-shadow:0 8px 24px #173b6710}.report-subject h3{text-align:center}.report-subject h4{margin-top:24px}.report-faculty-card{border-radius:13px}.report-education-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin:12px 0}.report-education-card{display:flex;flex-direction:column;gap:5px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--accent) 13%,white);border-radius:10px;background:color-mix(in srgb,var(--accent) 3%,white);font-size:10px;line-height:1.4}.report-education-card strong{font:700 12px Georgia,serif;color:var(--accent)}.report-education-year{font-weight:700;color:var(--muted)}.report-grade-cards{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.report-grade-cards div{min-width:100px;padding:9px 12px;border-top:3px solid var(--accent);border-radius:8px;background:var(--band)}.report-grade-cards strong,.report-grade-cards span{display:block}.report-grade-cards strong{font:700 14px Georgia,serif;color:var(--accent)}.report-grade-cards span{font-size:8px;text-transform:uppercase;color:var(--muted)}.report-basket-index{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 16px}.report-basket-index span{padding:5px 10px;border:1px solid color-mix(in srgb,var(--accent) 16%,white);border-radius:999px;background:var(--band);font-size:9px;color:var(--accent)}.report-theme-group.critical .report-theme-pill{background:#fff0ed;border-color:#efb7ad;color:#842c20}.report-theme-group.critical .report-theme-pill b{color:#a82e20}
+        .report-theme-group{margin:14px 0}.report-theme-group>strong{display:block;font:700 12px Georgia,serif;color:var(--muted);margin-bottom:7px}.report-theme-list{display:flex;flex-wrap:wrap;gap:7px}.report-theme-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 9px;border:1px solid color-mix(in srgb,var(--accent) 17%,white);border-radius:999px;background:color-mix(in srgb,var(--accent) 6%,white);color:var(--ink);font-size:12px;line-height:1.3}.report-theme-group.positive .report-theme-pill{background:#eef7f2;border-color:#c8e4d4}.report-theme-group.critical .report-theme-pill{background:#fbf1ef;border-color:#ecd0cb}.report-theme-pill b{color:var(--accent);font-size:12px}
         .report-page-start{break-before:page;page-break-before:always}
-        @media(max-width:600px){.report-cover{grid-template-columns:1fr 72px;min-height:68vh;padding:72px 20px 28px;border-radius:20px}.report-logo{width:34px;height:34px;left:16px;top:16px}.report-photo{width:68px;height:88px;border-width:3px;border-radius:16px}.report-cover h1{font-size:39px}.report-index ol{grid-template-columns:1fr}}
+        @media(max-width:600px){.report-cover{grid-template-columns:1fr 72px;min-height:68vh;padding:72px 20px 28px;border-radius:20px}.report-logo{width:34px;height:34px;left:16px;top:16px}.report-photo{width:68px;height:88px;border-width:3px;border-radius:16px}.report-cover h1{font-size:32px}.report-index ol{grid-template-columns:1fr}}
         @media(prefers-reduced-motion:reduce){.report-cover:before,.report-cover:after{animation:none}}
         @media print{.report-cover:before,.report-cover:after{animation:none}}
       `}</style>
 
-          {snapshot && (
+          {snapshot && exportReady && (
             <article>
               <header className="report-cover">
                 <img className="report-logo" src={getAssetPath("/logo.png")} alt="AmazeCC" />

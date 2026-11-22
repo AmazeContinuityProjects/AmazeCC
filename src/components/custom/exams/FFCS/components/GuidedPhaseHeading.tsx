@@ -33,9 +33,7 @@ export function GuidedPhaseHeading({
     return (
       <div className="flex flex-col items-center gap-2 shrink-0">
         <div className={iconClasses}>{icon}</div>
-        <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
-          {title}
-        </h1>
+        <h1 className="text-balance text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">{title}</h1>
         <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">{description}</p>
       </div>
     );
@@ -45,12 +43,10 @@ export function GuidedPhaseHeading({
     <>
       <div className={iconClasses}>{icon}</div>
       <div>
-        <span className={`text-[10px] font-black uppercase tracking-wider font-outfit ${toneClasses[tone].text}`}>
+        <span className={`text-[12px] font-black uppercase tracking-wider font-outfit ${toneClasses[tone].text}`}>
           {eyebrow}
         </span>
-        <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-          {title}
-        </h1>
+        <h1 className="text-balance text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">{title}</h1>
       </div>
       <p className="text-xs text-zinc-400 font-medium leading-relaxed">{description}</p>
     </>

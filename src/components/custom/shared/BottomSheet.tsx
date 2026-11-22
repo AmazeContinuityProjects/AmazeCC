@@ -9,6 +9,9 @@ import { acquireBodyScrollLock } from "@/lib/bodyScrollLock";
 import { useKeyboardInset } from "@/lib/useKeyboardInset";
 import { IconButton } from "./primitives/Controls";
 
+/** Pull distance past which releasing the grabber dismisses the sheet. */
+const SWIPE_DISMISS_PX = 120;
+
 interface BottomSheetProps {
   onClose: () => void;
   /** Width cap on sm+ (e.g. "max-w-md", "max-w-5xl"). Sheet stays bottom-anchored. */
@@ -146,10 +149,7 @@ export default function BottomSheet({
    * keyboard. `SyncNotification` is the caller that cares: it *parks* on
    * backdrop, swipe and system back, and only its X cancels.
    */
-  const handleDismiss = useCallback(
-    () => (onSwipeDown ?? onClose)(),
-    [onSwipeDown, onClose]
-  );
+  const handleDismiss = useCallback(() => (onSwipeDown ?? onClose)(), [onSwipeDown, onClose]);
 
   const keyboardInset = useKeyboardInset(avoidKeyboard);
   const lifted = avoidKeyboard && keyboardInset > 0;
@@ -192,40 +192,90 @@ export default function BottomSheet({
 
   useEffect(() => acquireBodyScrollLock(), []);
 
-  // Grabber-initiated swipe-down to dismiss (content keeps native scrolling)
+  // Grabber-initiated swipe-down to dismiss (content keeps native scrolling).
+  //
+  // A drag belongs to exactly one pointer from down to up. Losing that
+  // exclusivity is how gestures break on real touch screens: a second finger
+  // landing mid-drag used to re-anchor `startY` and snap the panel to the new
+  // finger, and a pointerup from an unrelated pointer could end someone else's
+  // drag. Cancel, lost capture and a window blur end an in-flight gesture
+  // without dismissing — only a completed swipe past the threshold closes it.
   const panelRef = useRef<HTMLDivElement>(null);
-  const dragState = useRef({ startY: 0, dy: 0, dragging: false });
+  const dragState = useRef({
+    active: false,
+    pointerId: -1,
+    startY: 0,
+    dy: 0,
+  });
+
+  /**
+   * Ends the gesture and resets the panel. `commit` is false for every
+   * interrupted path (pointercancel, lost capture, blur): those restore the
+   * sheet but must never be read as "the user swiped to dismiss".
+   *
+   * `e` is absent for the blur path, which ends whichever gesture is in
+   * flight. When present, only the pointer that started the drag may end it.
+   */
+  const endGrabberDrag = useCallback(
+    (e?: { pointerId: number }, commit = true) => {
+      const s = dragState.current;
+      if (!s.active || (e && e.pointerId !== s.pointerId)) return;
+      const dy = s.dy;
+      s.active = false;
+      s.pointerId = -1;
+      s.startY = 0;
+      s.dy = 0;
+      if (panelRef.current) {
+        panelRef.current.style.transition = "";
+        panelRef.current.style.transform = "";
+      }
+      if (commit && dy > SWIPE_DISMISS_PX) handleSwipeDown();
+    },
+    [handleSwipeDown],
+  );
 
   const onGrabberPointerDown = (e: React.PointerEvent) => {
     if (!dismissable) return;
+    // A second finger is not a new gesture. Ignoring it keeps the first
+    // pointer's start point, so the panel never jumps to the new finger.
+    if (dragState.current.active) return;
     // Never hijack presses that start on interactive elements (e.g. the X
     // button): capturing the pointer would retarget pointer-up and kill
     // their click, which breaks the X on mouse-driven viewports.
     if ((e.target as HTMLElement).closest("button, a, input, textarea, select, [role='button']")) return;
-    dragState.current = { startY: e.clientY, dy: 0, dragging: true };
+    dragState.current = { active: true, pointerId: e.pointerId, startY: e.clientY, dy: 0 };
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
   };
 
   const onGrabberPointerMove = (e: React.PointerEvent) => {
     const s = dragState.current;
-    if (!s.dragging || !panelRef.current) return;
+    if (!s.active || e.pointerId !== s.pointerId || !panelRef.current) return;
     s.dy = Math.max(0, e.clientY - s.startY);
     panelRef.current.style.transition = "none";
     panelRef.current.style.transform = `translateY(${s.dy}px)`;
   };
 
-  const endGrabberDrag = () => {
-    const s = dragState.current;
-    if (!s.dragging) return;
-    s.dragging = false;
-    if (panelRef.current) {
-      panelRef.current.style.transition = "";
-      panelRef.current.style.transform = "";
-    }
-    const dy = s.dy;
-    s.dy = 0;
-    if (dy > 120) handleSwipeDown();
-  };
+  // Losing window focus mid-drag stops pointer events from arriving. Without
+  // this the panel would stay translated with `transition: none` until the
+  // user came back and happened to press the grabber again.
+  //
+  // The window pointer listeners are a safety net for engines without pointer
+  // capture: a release outside the grabber would then never reach its handler
+  // and would leave the panel translated. The pointerId guard makes the
+  // duplicate delivery (grabber handler first, window second) a no-op.
+  useEffect(() => {
+    const onBlur = () => endGrabberDrag(undefined, false);
+    const onWindowPointerUp = (e: PointerEvent) => endGrabberDrag(e, true);
+    const onWindowPointerCancel = (e: PointerEvent) => endGrabberDrag(e, false);
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("pointerup", onWindowPointerUp);
+    window.addEventListener("pointercancel", onWindowPointerCancel);
+    return () => {
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("pointerup", onWindowPointerUp);
+      window.removeEventListener("pointercancel", onWindowPointerCancel);
+    };
+  }, [endGrabberDrag]);
 
   if (!portalReady) return null;
 
@@ -264,8 +314,9 @@ export default function BottomSheet({
         className="absolute inset-x-0 top-0 flex cursor-grab justify-center pt-3 active:cursor-grabbing touch-none select-none"
         onPointerDown={onGrabberPointerDown}
         onPointerMove={onGrabberPointerMove}
-        onPointerUp={endGrabberDrag}
-        onPointerCancel={endGrabberDrag}
+        onPointerUp={(e) => endGrabberDrag(e, true)}
+        onPointerCancel={(e) => endGrabberDrag(e, false)}
+        onLostPointerCapture={(e) => endGrabberDrag(e, false)}
       >
         <div className="h-1 w-12 rounded-full bg-zinc-300 dark:bg-zinc-700" />
       </div>
@@ -307,8 +358,7 @@ export default function BottomSheet({
   // Shared by both placements: bottom-anchored, so both keep the safe-area
   // inset and both slide up out of the bottom edge. The only difference is the
   // horizontal box — a drawer runs edge to edge, a centred card does not.
-  const anchoredBottom =
-    "fixed bottom-0 left-0 right-0 mx-auto sm:bottom-6 max-h-[88dvh] ";
+  const anchoredBottom = "fixed bottom-0 left-0 right-0 mx-auto sm:bottom-6 max-h-[88dvh] ";
 
   const panelStyle = {
     willChange: "transform",
@@ -413,7 +463,7 @@ export default function BottomSheet({
       />
       {panel}
     </>,
-    document.body
+    document.body,
   );
 }
 
@@ -448,18 +498,10 @@ function TitleCard({
   return (
     <div className="p-4 sm:p-5 mb-4 border border-zinc-200/70 dark:border-zinc-800/80 rounded-2xl flex items-center justify-between gap-3 bg-zinc-50/80 dark:bg-zinc-900/70">
       <div className="flex items-center gap-3 min-w-0">
-        {icon && (
-          <div className={`p-2 rounded-2xl border shrink-0 ${accent}`}>{icon}</div>
-        )}
+        {icon && <div className={`p-2 rounded-2xl border shrink-0 ${accent}`}>{icon}</div>}
         <div className="min-w-0">
-          <h2 className="text-base font-black text-zinc-900 dark:text-white truncate">
-            {title}
-          </h2>
-          {subtitle && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-snug">
-              {subtitle}
-            </p>
-          )}
+          <h2 className="text-base font-black text-zinc-900 dark:text-white truncate">{title}</h2>
+          {subtitle && <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-snug">{subtitle}</p>}
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">

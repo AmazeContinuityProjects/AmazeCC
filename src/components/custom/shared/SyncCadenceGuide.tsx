@@ -75,7 +75,7 @@ export default function SyncCadenceGuide() {
               resetCadenceOverrides();
               setOverrides({});
             }}
-            className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors cursor-pointer shrink-0"
+            className="inline-flex items-center gap-1 text-xs font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors cursor-pointer shrink-0"
             title="Re-enable every preset op"
           >
             <RotateCcw className="w-3 h-3" />
@@ -84,7 +84,7 @@ export default function SyncCadenceGuide() {
         )}
       </div>
 
-      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug">
+      <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-snug">
         Everything is cumulative. Windows below gate automatic/background sync — picking a tier manually (or a semester
         switch) runs it fully, now. Turning an op off removes it from every tier; it will not be fetched automatically
         again until you turn it back on.
@@ -116,7 +116,7 @@ export default function SyncCadenceGuide() {
                       {tier.label}
                     </span>
                     <span
-                      className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md border shrink-0 ${CADENCE_CHIP[tier.id]}`}
+                      className={`text-xs font-extrabold uppercase px-1.5 py-0.5 rounded-md border shrink-0 ${CADENCE_CHIP[tier.id]}`}
                     >
                       {tier.id === "daily"
                         ? "Daily"
@@ -127,14 +127,12 @@ export default function SyncCadenceGuide() {
                             : "3 months"}
                     </span>
                     {disabledCount > 0 && (
-                      <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400">
-                        {disabledCount} off
-                      </span>
+                      <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{disabledCount} off</span>
                     )}
                   </div>
-                  <p className="text-[10px] text-zinc-500 dark:text-zinc-500 truncate mt-0.5">{tier.description}</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-500 truncate mt-0.5">{tier.description}</p>
                 </div>
-                <span className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500 shrink-0 tabular-nums">
+                <span className="text-xs font-medium text-zinc-400 dark:text-zinc-500 shrink-0 tabular-nums">
                   {due === "never" ? "" : `synced ${due}`}
                 </span>
               </button>
@@ -150,10 +148,10 @@ export default function SyncCadenceGuide() {
                         className="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-zinc-100/70 dark:hover:bg-zinc-800/50 transition-colors"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300 truncate">
+                          <p className="text-xs font-bold text-zinc-700 dark:text-zinc-300 truncate">
                             {getOpLabel(step.op)}
                           </p>
-                          <p className="text-[9px] text-zinc-400 dark:text-zinc-500">
+                          <p className="text-xs text-zinc-400 dark:text-zinc-500">
                             {step.every ? `every ${step.every}d` : "every run"} · synced {lastSynced(step.op)}
                           </p>
                         </div>
@@ -179,7 +177,7 @@ export default function SyncCadenceGuide() {
                       </div>
                     );
                   })}
-                  <p className="text-[9px] text-zinc-400 dark:text-zinc-500 pt-1">
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500 pt-1">
                     Unchecking removes the op from <span className="font-bold">every</span> tier. Custom modes are
                     unaffected.
                   </p>

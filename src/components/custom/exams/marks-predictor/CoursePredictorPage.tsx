@@ -194,6 +194,9 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
   const [addFor, setAddFor] = useState<"theory" | "lab" | null>(null);
   /** Req 6: the loud batch-simulate chips sit behind one toggle. */
   const [showSimulate, setShowSimulate] = useState(false);
+  /** The ladder / curve editor is reference material: one disclosure, closed
+   *  by default, so the FAT answer and its inputs own the first screen. */
+  const [showGradeInsights, setShowGradeInsights] = useState(false);
   // The parent's action row hands over a DOM slot; refs land during the commit,
   // so the first paint falls back to the inline header line and the portal
   // adopts the row on the next tick.
@@ -394,7 +397,7 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
       id: "lost",
       label: "Points lost",
       value: pointsLostScaled > 0 ? `-${pointsLostScaled.toFixed(1)}` : "0.0",
-      sub: "Permanent deficit",
+      sub: "Room to improve",
       tone: pointsLostScaled > 0 ? "red" : "emerald",
     },
   ];
@@ -489,7 +492,7 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
               {label} ({rows.length})
             </h4>
           </div>
-          <div className="text-[10px] font-bold text-text-secondary shrink-0">
+          <div className="text-xs font-bold text-text-secondary shrink-0">
             <strong className="text-text-heading dark:text-zinc-200">{stats.scoredWeight.toFixed(1)}</strong>
             {" / "}
             {stats.totalWeightConfigured} wt
@@ -583,6 +586,17 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
         <InsightCarousel slides={carouselSlides} carousel={carousel} />
       </div>
 
+      {/* The honesty line lives beside the headline numbers, not at the
+          bottom of the reference section. The full wording stays in Grade
+          insights for anyone who opens it. */}
+      <p className="flex items-start gap-2 px-1 -mt-1 text-xs text-pretty leading-relaxed text-amber-700 dark:text-amber-400 font-medium">
+        <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden="true" />
+        <span>
+          <strong className="font-black">Just a prediction.</strong> Based on marks you entered, not an official result
+          — your actual grade may differ.
+        </span>
+      </p>
+
       {/* Pass conditions the letter alone cannot explain (§9.4, §9.6, §9.7):
           when one applies, the F or N above comes from here, not the ladder. */}
       {prediction.passIssues.length > 0 && (
@@ -590,7 +604,7 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
           {prediction.passIssues.map((issue) => (
             <p
               key={issue.code}
-              className={`flex items-start gap-2 text-[11px] leading-relaxed font-medium ${
+              className={`flex items-start gap-2 text-sm text-pretty leading-relaxed font-medium ${
                 issue.certain ? "text-red-700 dark:text-red-400" : "text-amber-700 dark:text-amber-400"
               }`}
             >
@@ -622,6 +636,20 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
           <div
             style={{ width: `${lostPercent}%` }}
             className="h-full bg-red-500 dark:bg-red-600 transition-all duration-300"
+          />
+        </div>
+      </div>
+
+      {/* "What do I need in the FAT?" is the question this page exists to
+          answer, so the solver sits with the standing, not eight sections
+          down. Assessments follow — they are the inputs its answer needs. */}
+      <div className="space-y-3" data-tour-id="predictor-target">
+        <SectionHeader icon={Sliders} title="Target grade & FAT solver" />
+        <div className="overflow-hidden">
+          <TargetGradeSolver
+            prediction={prediction}
+            savedTargetScore={targetScore}
+            onPersistTargetScore={persistTargetScore}
           />
         </div>
       </div>
@@ -662,7 +690,7 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
             </GhostButton>
           }
         />
-        <p className="px-1 -mt-1 text-[11px] leading-relaxed text-text-secondary dark:text-text-muted font-medium">
+        <p className="px-1 -mt-1 text-sm text-pretty leading-relaxed text-text-secondary dark:text-text-muted font-medium">
           Tap a test to set what you expect — the predicted grade follows the engine&apos;s class band live. The FAT
           waits in the target card below; a locked row means faculty posted that mark.
         </p>
@@ -672,7 +700,7 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
             type="button"
             onClick={() => setShowSimulate((v) => !v)}
             aria-expanded={showSimulate}
-            className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-surface dark:bg-surface-secondary text-zinc-600 dark:text-zinc-300 text-[11px] font-black border border-border-strong cursor-pointer shadow-3xs whitespace-nowrap transition-colors hover:text-text-heading"
+            className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 min-h-11 rounded-xl bg-surface dark:bg-surface-secondary text-zinc-600 dark:text-zinc-300 text-xs font-black border border-border-strong cursor-pointer shadow-3xs whitespace-nowrap transition-colors hover:text-text-heading active:bg-surface-secondary dark:active:bg-surface-tertiary"
           >
             Simulate…
             <ChevronDown className={`w-3 h-3 transition-transform ${showSimulate ? "rotate-180" : ""}`} />
@@ -691,7 +719,7 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
                 key={pct}
                 type="button"
                 onClick={() => handleBatchSimulate(pct)}
-                className={`shrink-0 px-2.5 py-1.5 rounded-xl bg-surface dark:bg-surface-secondary ${tone} text-[11px] font-black border cursor-pointer shadow-3xs whitespace-nowrap transition-colors hover:text-current`}
+                className={`shrink-0 px-2.5 py-1.5 min-h-11 rounded-xl bg-surface dark:bg-surface-secondary ${tone} text-xs font-black border cursor-pointer shadow-3xs whitespace-nowrap transition-colors hover:text-current active:bg-surface-secondary`}
               >
                 All {pct}%
               </button>
@@ -704,143 +732,153 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
         </div>
       </div>
 
-      <div className="space-y-3" data-tour-id="predictor-target">
-        <SectionHeader icon={Sliders} title="Target grade & FAT solver" />
-        <div className="overflow-hidden">
-          <TargetGradeSolver
-            prediction={prediction}
-            savedTargetScore={targetScore}
-            onPersistTargetScore={persistTargetScore}
-          />
-        </div>
-      </div>
-
       {/* Grade insights — the same section the course marks subpage shows:
           the beta "Grade insights" header, the absolute-enforced card, then
           the "Grade boundaries" ladder — all fed by the engine's own bands for
           the whole course, so what justifies the predicted letter here is
           word-for-word what the marks page's boundaries section shows. */}
       <div className="space-y-3" data-tour-id="predictor-ladder">
-        <SectionHeader icon={Gauge} title="Grade insights" right={<ToneBadge tone="blue">Beta</ToneBadge>} />
-        {!prediction.isCurved && (
-          <div className="rounded-3xl border border-border-strong dark:border-border card-surface flex items-center gap-3.5 px-4 py-3.5">
-            <span
-              className={`h-11 w-11 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}
-            >
-              <ShieldCheck className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <h4 className="text-sm font-bold text-text-heading font-outfit tracking-tight">
-                Absolute grading enforced
-              </h4>
-              <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
-                Your grade comes from fixed percentage boundaries, not from how the class performed.
+        {/* One disclosure for the whole reference block: the ladder, the
+            curve editor, the full prediction wording. Closed by default so
+            the FAT answer and its inputs own the first screen. */}
+        <button
+          type="button"
+          onClick={() => setShowGradeInsights((v) => !v)}
+          aria-expanded={showGradeInsights}
+          className="w-full min-h-11 flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl border border-border-muted bg-surface text-left cursor-pointer hover:bg-surface-secondary transition-colors"
+        >
+          <span className="flex items-center gap-2 text-sm font-black text-text-heading font-outfit">
+            <Gauge className="w-4 h-4" />
+            Grade insights
+            <ToneBadge tone="blue" size="sm">
+              Beta
+            </ToneBadge>
+          </span>
+          <ChevronDown
+            className={`w-4 h-4 shrink-0 text-text-muted transition-transform ${showGradeInsights ? "rotate-180" : ""}`}
+          />
+        </button>
+        <div className="space-y-3" hidden={!showGradeInsights}>
+          {!prediction.isCurved && (
+            <div className="rounded-[24px] border border-border-strong dark:border-border card-surface flex items-center gap-3.5 px-4 py-3.5">
+              <span
+                className={`h-11 w-11 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}
+              >
+                <ShieldCheck className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <h4 className="text-sm font-bold text-text-heading font-outfit tracking-tight">
+                  Absolute grading enforced
+                </h4>
+                <p className="text-xs text-text-secondary dark:text-text-muted font-medium mt-0.5">
+                  Your grade comes from fixed percentage boundaries, not from how the class performed.
+                </p>
+              </div>
+            </div>
+          )}
+          <div className="space-y-3">
+            <SectionHeader
+              icon={Gauge}
+              title="Grade boundaries"
+              count={ladderBands.length}
+              right={
+                classStats?.manual && prediction.isCurved ? (
+                  <ToneBadge tone="indigo">Your curve</ToneBadge>
+                ) : curveEligible && !prediction.isCurved ? (
+                  <ToneBadge tone="zinc">Awaiting class data</ToneBadge>
+                ) : null
+              }
+            />
+            {/* Not dimmed while awaiting class data: the curve editor lives in
+                this card and must not read as disabled. The badge says it. */}
+            <div className="rounded-[24px] border border-border-strong dark:border-border card-surface px-4 py-3.5 space-y-2.5">
+              {/* The marks page's in-card stats line: dose · μ · σ above the bar —
+                  or the reader's own numbers, when they have set them. Shown on
+                  every curve-eligible course, so a course still short of
+                  classmates says how short, and offers the manual curve. */}
+              {curveEligible && (
+                <div className="space-y-1.5">
+                  <p className="flex items-center gap-2 text-xs font-medium text-text-secondary dark:text-text-muted flex-wrap">
+                    <ToneDot
+                      tone={
+                        !prediction.isCurved
+                          ? "zinc"
+                          : classStats?.manual
+                            ? "indigo"
+                            : isEarlyEstimate(classStats)
+                              ? "amber"
+                              : "emerald"
+                      }
+                    />
+                    {prediction.isCurved && classStats ? (
+                      <span>
+                        {classStats.manual ? (
+                          <span className="font-bold text-text-heading">Your numbers</span>
+                        ) : (
+                          <>
+                            <span className="font-bold text-text-heading">{classStats.count}</span>{" "}
+                            {classStats.count === 1 ? "peer" : "peers"}
+                          </>
+                        )}
+                        <span aria-hidden="true"> · </span>μ{" "}
+                        <span className="font-bold text-text-heading">{classStats.mean.toFixed(1)}</span>
+                        <span aria-hidden="true"> · </span>σ{" "}
+                        <span className="font-bold text-text-heading">
+                          {(effectiveClassStats(classStats)?.sd ?? classStats.sd).toFixed(1)}
+                        </span>
+                        {isEarlyEstimate(classStats) ? <span> · early estimate</span> : null}
+                      </span>
+                    ) : syncedClassStats && syncedClassStats.count > 0 ? (
+                      <span>
+                        Only {syncedClassStats.count} {syncedClassStats.count === 1 ? "peer" : "peers"} so far — the
+                        curve needs {MIN_CURVE_SAMPLE}+, showing default bands
+                      </span>
+                    ) : (
+                      <span>No class data yet — showing default bands</span>
+                    )}
+                  </p>
+                  <ClassCurveEditor
+                    key={classStatsOverride ? `${classStatsOverride.mean}-${classStatsOverride.sd}` : "synced"}
+                    synced={syncedClassStats}
+                    override={classStatsOverride}
+                    onChange={setClassStatsOverride}
+                  />
+                </div>
+              )}
+              <GradeLadderChart
+                bands={ladderBands}
+                standingGrade={standingGrade}
+                currentPct={hasEnteredMarks ? currentStandingPct : null}
+              />
+              <p className="text-sm text-pretty leading-relaxed text-text-secondary dark:text-text-muted font-medium">
+                {hasEnteredMarks ? (
+                  <>
+                    Your marks, scaled to 100 — earned over the tests you have given a mark to; empty ones don&apos;t
+                    count.
+                  </>
+                ) : (
+                  <>
+                    No marks entered yet — enter one on any test above and this ladder shows where you stand, scaled to
+                    100.
+                  </>
+                )}{" "}
+                The predicted{" "}
+                <strong className={TONE_TEXT[toneForGrade(optimalGrade?.letter ?? "")]}>
+                  {optimalGrade?.letter ?? "—"}
+                </strong>{" "}
+                above is a different read: the released pace carried over the weight still to come.
+              </p>
+              {/* Req: the honesty line — every number in this box is an
+                  estimate the reader typed, not a result the university
+                  posted. */}
+              <p className="flex items-start gap-2 text-sm text-pretty leading-relaxed font-medium text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden="true" />
+                <span>
+                  <strong className="font-black">Just a prediction.</strong> These grades come from marks you entered —
+                  estimates within the grade boundaries, not a result. Your actual grade can land outside these numbers.
+                </span>
               </p>
             </div>
-          </div>
-        )}
-        <div className="space-y-3">
-          <SectionHeader
-            icon={Gauge}
-            title="Grade boundaries"
-            count={ladderBands.length}
-            right={
-              classStats?.manual && prediction.isCurved ? (
-                <ToneBadge tone="indigo">Your curve</ToneBadge>
-              ) : curveEligible && !prediction.isCurved ? (
-                <ToneBadge tone="zinc">Awaiting class data</ToneBadge>
-              ) : null
-            }
-          />
-          {/* Not dimmed while awaiting class data: the curve editor lives in
-              this card and must not read as disabled. The badge says it. */}
-          <div className="rounded-[24px] border border-border-strong dark:border-border card-surface px-4 py-3.5 space-y-2.5">
-            {/* The marks page's in-card stats line: dose · μ · σ above the bar —
-                or the reader's own numbers, when they have set them. Shown on
-                every curve-eligible course, so a course still short of
-                classmates says how short, and offers the manual curve. */}
-            {curveEligible && (
-              <div className="space-y-1.5">
-                <p className="flex items-center gap-2 text-[11px] font-medium text-text-secondary dark:text-text-muted flex-wrap">
-                  <ToneDot
-                    tone={
-                      !prediction.isCurved
-                        ? "zinc"
-                        : classStats?.manual
-                          ? "indigo"
-                          : isEarlyEstimate(classStats)
-                            ? "amber"
-                            : "emerald"
-                    }
-                  />
-                  {prediction.isCurved && classStats ? (
-                    <span>
-                      {classStats.manual ? (
-                        <span className="font-bold text-text-heading">Your numbers</span>
-                      ) : (
-                        <>
-                          <span className="font-bold text-text-heading">{classStats.count}</span>{" "}
-                          {classStats.count === 1 ? "peer" : "peers"}
-                        </>
-                      )}
-                      <span aria-hidden="true"> · </span>μ{" "}
-                      <span className="font-bold text-text-heading">{classStats.mean.toFixed(1)}</span>
-                      <span aria-hidden="true"> · </span>σ{" "}
-                      <span className="font-bold text-text-heading">
-                        {(effectiveClassStats(classStats)?.sd ?? classStats.sd).toFixed(1)}
-                      </span>
-                      {isEarlyEstimate(classStats) ? <span> · early estimate</span> : null}
-                    </span>
-                  ) : syncedClassStats && syncedClassStats.count > 0 ? (
-                    <span>
-                      Only {syncedClassStats.count} {syncedClassStats.count === 1 ? "peer" : "peers"} so far — the curve
-                      needs {MIN_CURVE_SAMPLE}+, showing default bands
-                    </span>
-                  ) : (
-                    <span>No class data yet — showing default bands</span>
-                  )}
-                </p>
-                <ClassCurveEditor
-                  key={classStatsOverride ? `${classStatsOverride.mean}-${classStatsOverride.sd}` : "synced"}
-                  synced={syncedClassStats}
-                  override={classStatsOverride}
-                  onChange={setClassStatsOverride}
-                />
-              </div>
-            )}
-            <GradeLadderChart
-              bands={ladderBands}
-              standingGrade={standingGrade}
-              currentPct={hasEnteredMarks ? currentStandingPct : null}
-            />
-            <p className="text-[11px] leading-relaxed text-text-secondary dark:text-text-muted font-medium">
-              {hasEnteredMarks ? (
-                <>
-                  Your marks, scaled to 100 — earned over the tests you have given a mark to; empty ones don&apos;t
-                  count.
-                </>
-              ) : (
-                <>
-                  No marks entered yet — enter one on any test above and this ladder shows where you stand, scaled to
-                  100.
-                </>
-              )}{" "}
-              The predicted{" "}
-              <strong className={TONE_TEXT[toneForGrade(optimalGrade?.letter ?? "")]}>
-                {optimalGrade?.letter ?? "—"}
-              </strong>{" "}
-              above is a different read: the released pace carried over the weight still to come.
-            </p>
-            {/* Req: the honesty line — every number in this box is an
-                estimate the reader typed, not a result the university
-                posted. */}
-            <p className="flex items-start gap-2 text-[11px] leading-relaxed font-medium text-amber-700 dark:text-amber-400">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden="true" />
-              <span>
-                <strong className="font-black">Just a prediction.</strong> These grades come from marks you entered —
-                estimates within the grade boundaries, not a result. Your actual grade can land outside these numbers.
-              </span>
-            </p>
           </div>
         </div>
       </div>

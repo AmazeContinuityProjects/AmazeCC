@@ -46,7 +46,7 @@ export default function ClassCurveEditor({
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          className="cursor-pointer text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+          className="cursor-pointer inline-flex items-center min-h-11 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline active:text-indigo-800"
         >
           {override ? "Edit your μ and σ" : "Use your own μ and σ"}
         </button>
@@ -57,7 +57,7 @@ export default function ClassCurveEditor({
               onChange(null);
               setOpen(false);
             }}
-            className="cursor-pointer text-[11px] font-bold text-text-secondary dark:text-text-muted hover:underline"
+            className="cursor-pointer inline-flex items-center min-h-11 text-xs font-bold text-text-secondary dark:text-text-muted hover:underline active:text-text-heading"
           >
             {synced && synced.count > 0 ? "Back to class data" : "Clear"}
           </button>
@@ -73,7 +73,7 @@ export default function ClassCurveEditor({
           }}
         >
           <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Mean μ</span>
+            <span className="text-xs font-black uppercase tracking-widest text-text-muted">Mean μ</span>
             <input
               type="number"
               inputMode="decimal"
@@ -87,7 +87,7 @@ export default function ClassCurveEditor({
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Std dev σ</span>
+            <span className="text-xs font-black uppercase tracking-widest text-text-muted">Std dev σ</span>
             <input
               type="number"
               inputMode="decimal"
@@ -103,12 +103,12 @@ export default function ClassCurveEditor({
           <button
             type="submit"
             disabled={!valid}
-            className="cursor-pointer h-9 px-3 rounded-xl bg-indigo-600 text-white text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+            className="cursor-pointer h-9 min-h-11 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Apply
           </button>
           {!valid ? (
-            <p className="basis-full text-[11px] font-medium text-amber-700 dark:text-amber-400">
+            <p className="basis-full text-xs font-medium text-amber-700 dark:text-amber-400">
               μ between {MANUAL_MEAN_RANGE[0]} and {MANUAL_MEAN_RANGE[1]}, σ between {MANUAL_SD_RANGE[0]} and{" "}
               {MANUAL_SD_RANGE[1]}.
             </p>

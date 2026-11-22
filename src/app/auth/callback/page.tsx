@@ -32,12 +32,12 @@ export default function AuthCallbackPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-4">
-      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-8 space-y-5 text-center">
+      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-[24px] p-8 space-y-5 text-center">
         <img src="/logo.png" alt="AmazeCC Logo" className="w-16 h-16 mx-auto object-contain drop-shadow-md" />
         {error ? (
           <>
-            <h1 className="text-xl font-bold text-zinc-100">Sign-in didn&apos;t finish</h1>
-            <p className="text-sm text-zinc-400">{error}</p>
+            <h1 className="text-xl font-black tracking-tight text-balance text-zinc-100">Sign-in didn&apos;t finish</h1>
+            <p className="text-sm text-zinc-400 text-pretty">{error}</p>
             <button
               type="button"
               onClick={() => signInInteractive()}

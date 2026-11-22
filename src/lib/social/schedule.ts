@@ -27,26 +27,33 @@
  */
 
 import config from "../../../config.json";
+import { DAY_ORDER, SLOT_MAP, equivalentTokens } from "@/lib/generated/timetable";
 import type { BusyEntry, BusyMap } from "./types";
 
 /* ------------------------------------------------------------------ *
  * Vocabulary
  * ------------------------------------------------------------------ */
 
-export const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
+/**
+ * Days in the canonical order, sourced from the unified timetable rather than
+ * re-derived from `config.json`'s key order. The tuple cast keeps the literal
+ * `Day` union that call sites already rely on.
+ */
+export const DAYS = DAY_ORDER as unknown as readonly ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 export type Day = (typeof DAYS)[number];
 
 export type SlotEntry = { time: string };
 export type SlotMap = Record<string, Record<string, SlotEntry>>;
 
 /**
- * The shared vocabulary, imported from `config.json`.
- *
- * The server keeps its own copy in `AmazeCC-API/config.json` and validates every
- * key against it at ingest, so the two cannot drift without a version mismatch
- * showing up in `slotmapVersion`.
+ * The shared vocabulary. This is the generated flat projection of the canonical
+ * `src/data/timetable/campuses/chennai.json` (`src/lib/generated/slotMap.json`),
+ * exposed by the generated module as `SLOT_MAP`. It is the same `day → token →
+ * { time }` shape `config.json` used to provide, so every consumer here — and
+ * the server's copy, which validates each key at ingest — keeps working, but the
+ * vocabulary now has exactly one source of truth.
  */
-export const slotMap = config.slotMap as unknown as SlotMap;
+export const slotMap: SlotMap = SLOT_MAP;
 
 export const SEMESTER_IDS: string[] = config.semesterIDs as unknown as string[];
 
@@ -68,6 +75,22 @@ export function parseSlotKey(key: string): { day: string; slotId: string } | nul
   const i = key.indexOf(":");
   if (i <= 0 || i === key.length - 1) return null;
   return { day: key.slice(0, i), slotId: key.slice(i + 1) };
+}
+
+/**
+ * Is `busy` occupied in the physical period named by `key`?
+ *
+ * The canonical vocabulary makes each programme's token a first-class slot, so
+ * `slotCoveringNow` can return law's `MON:A` while a VTOP-derived busy map holds
+ * the core token `MON:A1`. Both name the same period. Checking only the exact
+ * key would report "free now" for a class the student is actually in.
+ */
+function busyCoversPeriod(busy: BusyMap | undefined, key: string | null): boolean {
+  if (!key || !busy) return false;
+  if (busy[key]) return true;
+  const parsed = parseSlotKey(key);
+  if (!parsed) return false;
+  return equivalentTokens(parsed.day, parsed.slotId).some((token) => Boolean(busy[slotKey(parsed.day, token)]));
 }
 
 /** True when the key resolves against the vocabulary. */
@@ -179,15 +202,7 @@ export function toMinutesInvariant(): {
  * Which slot is it right now?
  * ------------------------------------------------------------------ */
 
-export const FULL_DAY_NAMES = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-] as const;
+export const FULL_DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
 
 export function dayKeyForDate(date: Date): Day {
   // JS getDay() is 0=Sunday; DAYS is MON-first.
@@ -237,10 +252,7 @@ export type SlotVenueCourse = {
  * fan-out is the honest reading of a day-less input, and it is idempotent for
  * callers that already emit one entry per `(day, slotId)`.
  */
-export function buildBusyMap(
-  courses: SlotVenueCourse[],
-  map: SlotMap = slotMap
-): BusyMap {
+export function buildBusyMap(courses: SlotVenueCourse[], map: SlotMap = slotMap): BusyMap {
   const out: BusyMap = {};
 
   for (const course of courses ?? []) {
@@ -326,7 +338,6 @@ export interface OverlapMetrics {
   currentSlot: string | null;
 }
 
-
 /** Each day's slots in start-time order, so "first" means chronologically first. */
 const orderedDayCache = new WeakMap<SlotMap, { day: Day; slotId: string; start: number }[][]>();
 
@@ -336,7 +347,7 @@ export function orderedDays(map: SlotMap): { day: Day; slotId: string; start: nu
   const built = DAYS.map((day) =>
     Object.entries(map[day] ?? {})
       .map(([slotId, entry]) => ({ day, slotId, start: slotRange(entry.time).start }))
-      .sort((a, b) => a.start - b.start)
+      .sort((a, b) => a.start - b.start),
   );
   orderedDayCache.set(map, built);
   return built;
@@ -359,7 +370,7 @@ export function computeOverlap(
   mine: BusyMap,
   theirs: BusyMap,
   map: SlotMap = slotMap,
-  now: Date = new Date()
+  now: Date = new Date(),
 ): OverlapMetrics {
   const currentSlot = slotCoveringNow(now);
   const myKeys = new Set(Object.keys(mine ?? {}));
@@ -404,7 +415,7 @@ export function computeOverlap(
     sharedClassHours: Math.round((sharedMins / 60) * 10) / 10,
     myClassHours: Math.round((myMins / 60) * 10) / 10,
     firstCommonFreeSlot: first,
-    freeNow: currentSlot ? !theirs?.[currentSlot] : true,
+    freeNow: !busyCoversPeriod(theirs, currentSlot),
     currentSlot,
   };
 }
@@ -461,7 +472,7 @@ export function computeGroupOverlap(
   mine: BusyMap,
   memberMaps: BusyMap[],
   map: SlotMap = slotMap,
-  now: Date = new Date()
+  now: Date = new Date(),
 ): GroupOverlapMetrics {
   const currentSlot = slotCoveringNow(now);
   const empty: GroupOverlapMetrics = {
@@ -534,15 +545,10 @@ export function computeGroupOverlap(
     commonFreeSlots: free,
     commonFreeHours: Math.round((freeMins / 60) * 10) / 10,
     allClashSlots: allClash,
-    groupMatchPct:
-      totalMemberSlotMins > 0
-        ? Math.round((freeMemberSlotMins / totalMemberSlotMins) * 100)
-        : 0,
+    groupMatchPct: totalMemberSlotMins > 0 ? Math.round((freeMemberSlotMins / totalMemberSlotMins) * 100) : 0,
     myClassHours: Math.round((myMins / 60) * 10) / 10,
     firstCommonFreeSlot: first,
-    freeNow: currentSlot
-      ? theirsKeys.every((keys) => !keys.has(currentSlot))
-      : true,
+    freeNow: memberMaps.every((map) => !busyCoversPeriod(map, currentSlot)),
     currentSlot,
   };
 }
@@ -594,10 +600,7 @@ export type LegacyClassSlot = {
  * When `day` is missing or unrecognised the slot still fans out, because then
  * there is genuinely nothing to go on.
  */
-export function busyMapFromClassSlots(
-  slots: LegacyClassSlot[] | undefined,
-  map: SlotMap = slotMap
-): BusyMap {
+export function busyMapFromClassSlots(slots: LegacyClassSlot[] | undefined, map: SlotMap = slotMap): BusyMap {
   const out: BusyMap = {};
   for (const slot of slots ?? []) {
     const id = String(slot?.slotId ?? "").trim();
@@ -652,9 +655,7 @@ export function lunchColumnIndex(map: SlotMap = slotMap): number {
   const { theory, lab } = mondaySkeleton(map);
   const count = Math.max(theory.length, lab.length);
   for (let i = 0; i < count; i++) {
-    const starts = [theory[i]?.start, lab[i]?.start].filter(
-      (v): v is number => typeof v === "number"
-    );
+    const starts = [theory[i]?.start, lab[i]?.start].filter((v): v is number => typeof v === "number");
     if (!starts.length) continue;
     if (Math.min(...starts) >= LUNCH_START_MIN) return i;
   }

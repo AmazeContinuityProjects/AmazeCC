@@ -18,10 +18,38 @@ export { parseFastCSV };
 const catalogCache = new Map<string, FreeRoomCourse[]>();
 const inFlightPromises = new Map<string, Promise<FreeRoomCourse[]>>();
 
-function parseInWorker(text: string): Promise<FreeRoomCourse[]> {
-  if (typeof window === "undefined" || typeof Worker === "undefined") {
+interface CatalogWorkerReply {
+  id: string;
+  parsed?: FreeRoomCourse[];
+  rawRows?: Record<string, string>[];
+  error?: string;
+}
+
+type CatalogWorkerMode = "parsed" | "raw";
+
+type CatalogWorkerOutcome =
+  { kind: "ok"; parsed?: FreeRoomCourse[]; rawRows?: Record<string, string>[] } | { kind: "error" };
+
+/**
+ * The one entry point to the catalog parser worker, shared by both the free
+ * classroom catalog and the FFCS report loader.
+ *
+ * Both callers need the same expensive operation — tokenizing a multi-megabyte
+ * CSV — off the UI thread. They differ only in what happens to the raw rows
+ * afterwards: `"parsed"` normalizes them into `FreeRoomCourse` here, while
+ * `"raw"` hands them back so the caller can run its own `parseReportRows` on
+ * the main thread. Keeping the worker creation, timeout and fallback in one
+ * place means there is still a single worker-backed path to reuse, with the
+ * existing singleton cache alongside it.
+ */
+function runCatalogParser(text: string, mode: CatalogWorkerMode): Promise<CatalogWorkerOutcome> {
+  const fallback = (): CatalogWorkerOutcome => {
     const rawRows = parseFastCSV(text);
-    return Promise.resolve(parseCourseRows(rawRows));
+    return mode === "raw" ? { kind: "ok", rawRows } : { kind: "ok", parsed: parseCourseRows(rawRows) };
+  };
+
+  if (typeof window === "undefined" || typeof Worker === "undefined") {
+    return Promise.resolve(fallback());
   }
 
   return new Promise((resolve) => {
@@ -31,26 +59,28 @@ function parseInWorker(text: string): Promise<FreeRoomCourse[]> {
         type: "module",
       });
     } catch {
-      const rawRows = parseFastCSV(text);
-      return resolve(parseCourseRows(rawRows));
+      resolve(fallback());
+      return;
     }
 
-    const id = `cat-${Date.now()}-${Math.random()}`;
+    const id = `${mode}-${Date.now()}-${Math.random()}`;
     const timer = setTimeout(() => {
       worker?.terminate();
-      const rawRows = parseFastCSV(text);
-      resolve(parseCourseRows(rawRows));
+      resolve(fallback());
     }, 8000);
 
-    worker.onmessage = (e: MessageEvent<{ id: string; parsed: FreeRoomCourse[]; error?: string }>) => {
+    worker.onmessage = (e: MessageEvent<CatalogWorkerReply>) => {
       if (e.data && e.data.id === id) {
         clearTimeout(timer);
         worker?.terminate();
-        if (e.data.error || !e.data.parsed) {
-          const rawRows = parseFastCSV(text);
-          resolve(parseCourseRows(rawRows));
+        if (e.data.error) {
+          resolve(fallback());
+          return;
+        }
+        if (mode === "raw") {
+          resolve(Array.isArray(e.data.rawRows) ? { kind: "ok", rawRows: e.data.rawRows } : fallback());
         } else {
-          resolve(e.data.parsed);
+          resolve(Array.isArray(e.data.parsed) ? { kind: "ok", parsed: e.data.parsed } : fallback());
         }
       }
     };
@@ -58,12 +88,26 @@ function parseInWorker(text: string): Promise<FreeRoomCourse[]> {
     worker.onerror = () => {
       clearTimeout(timer);
       worker?.terminate();
-      const rawRows = parseFastCSV(text);
-      resolve(parseCourseRows(rawRows));
+      resolve(fallback());
     };
 
-    worker.postMessage({ id, text });
+    worker.postMessage({ id, text, mode });
   });
+}
+
+function parseInWorker(text: string): Promise<FreeRoomCourse[]> {
+  return runCatalogParser(text, "parsed").then((outcome) => (outcome.kind === "ok" ? (outcome.parsed ?? []) : []));
+}
+
+/**
+ * Parse a report's CSV into raw rows on the worker thread.
+ *
+ * The FFCS planner owns `parseReportRows` (its report has a different column
+ * vocabulary from the free-classroom catalog), so it keeps that mapping and
+ * only moves the CSV tokenization off the UI thread by calling this function.
+ */
+export function parseReportCsvInWorker(text: string): Promise<Record<string, string>[]> {
+  return runCatalogParser(text, "raw").then((outcome) => (outcome.kind === "ok" ? (outcome.rawRows ?? []) : []));
 }
 
 /**

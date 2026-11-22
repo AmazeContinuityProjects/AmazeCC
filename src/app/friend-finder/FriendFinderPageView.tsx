@@ -52,7 +52,7 @@ export default function FriendFinderPageView() {
   if (isLoggedIn) {
     return (
       <AppHousing route="friend_finder" semester="CH20262705">
-        <div className="min-h-[100dvh] w-full max-w-full overflow-x-clip bg-slate-50 text-slate-850 dark:bg-[#03060F] dark:text-gray-100 flex flex-col font-sans transition-colors duration-300">
+        <div className="min-h-[100dvh] w-full max-w-full overflow-x-clip bg-slate-50 text-slate-800 dark:bg-background dark:text-gray-100 flex flex-col font-sans transition-colors duration-300">
           <main className="flex-1 w-full px-3 sm:px-6 py-4 sm:py-6 overflow-x-clip">
             <FriendFinderTab standaloneLogo />
           </main>
@@ -62,22 +62,19 @@ export default function FriendFinderPageView() {
             <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-between gap-4">
               <p>© {new Date().getFullYear()} Amaze Continuity Projects. Independent Student Timetable Tools.</p>
               <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-                <Link href="/" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <Link href="/" className="hover:text-info transition-colors">
                   Home
                 </Link>
-                <Link href="/ffcs" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <Link href="/ffcs" className="hover:text-info transition-colors">
                   FFCS Planner
                 </Link>
-                <Link
-                  href="/friend-finder/disclaimer"
-                  className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                >
+                <Link href="/friend-finder/disclaimer" className="hover:text-info transition-colors">
                   Disclaimer
                 </Link>
-                <Link href="/privacy" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <Link href="/privacy" className="hover:text-info transition-colors">
                   Privacy
                 </Link>
-                <Link href="/terms" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <Link href="/terms" className="hover:text-info transition-colors">
                   Terms
                 </Link>
               </div>
@@ -94,10 +91,10 @@ export default function FriendFinderPageView() {
   ───────────────────────────────────────────────────────────── */
   return (
     <AppHousing route="friend_finder" semester="CH20262705">
-      <div className="min-h-[100dvh] w-full max-w-full overflow-x-clip bg-slate-50 text-slate-850 dark:bg-[#03060F] dark:text-gray-100 flex flex-col font-sans transition-colors duration-300">
+      <div className="min-h-[100dvh] w-full max-w-full overflow-x-clip bg-slate-50 text-slate-800 dark:bg-background dark:text-gray-100 flex flex-col font-sans transition-colors duration-300">
         {/* Top Navigation Bar */}
         <nav
-          className="w-full bg-white/85 dark:bg-[#03060F]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] sticky top-0 z-40 transition-colors"
+          className="w-full bg-white/85 dark:bg-background/85 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] sticky top-0 z-40 transition-colors"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
@@ -115,10 +112,10 @@ export default function FriendFinderPageView() {
                   className="h-8 w-8 object-contain"
                 />
                 <div className="flex items-center gap-2">
-                  <span className="text-base sm:text-lg font-black tracking-tight font-outfit text-zinc-900 dark:text-white">
-                    AmazeCC <span className="text-indigo-600 dark:text-indigo-400">Friend Finder</span>
+                  <span className="text-base sm:text-xl font-black tracking-tight font-outfit text-zinc-900 dark:text-white">
+                    AmazeCC <span className="text-info">Friend Finder</span>
                   </span>
-                  <span className="hidden md:inline-flex items-center text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+                  <span className="hidden md:inline-flex items-center text-xs font-extrabold uppercase px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
                     Winter 26-27
                   </span>
                 </div>
@@ -128,14 +125,14 @@ export default function FriendFinderPageView() {
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 href="/ffcs"
-                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors px-3 py-2 rounded-xl"
+                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-zinc-300 hover:text-info transition-colors px-3 py-2 rounded-xl"
               >
                 <BookOpen size={13} />
                 <span>FFCS Planner</span>
               </Link>
               <Link
                 href="/friend-finder/disclaimer"
-                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors px-3 py-2 rounded-xl"
+                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-zinc-300 hover:text-info transition-colors px-3 py-2 rounded-xl"
               >
                 <ShieldAlert size={13} />
                 <span>Disclaimer</span>
@@ -146,7 +143,7 @@ export default function FriendFinderPageView() {
                 onClick={() => openLoginSyncSession()}
                 title="Login with VTOP"
                 aria-label="Login with VTOP"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-slate-200/80 dark:border-zinc-800 shadow-2xs active:scale-95 cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-info transition-colors p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-slate-200/80 dark:border-zinc-800 shadow-2xs active:scale-95 cursor-pointer"
               >
                 <LogIn size={14} className="shrink-0" />
                 <span className="hidden sm:inline">Login with VTOP</span>
@@ -158,31 +155,21 @@ export default function FriendFinderPageView() {
 
         {/* Hero Onboarding Section */}
         <section className="relative overflow-hidden pt-10 sm:pt-16 pb-12 sm:pb-20 border-b border-slate-200/80 dark:border-white/[0.08]">
-          {/* Glow gradients */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-6xl h-96 pointer-events-none -z-10 overflow-hidden opacity-60 dark:opacity-40">
-            <div className="absolute top-[-10%] left-[20%] w-[450px] h-[350px] rounded-full bg-indigo-500/20 blur-[100px]" />
-            <div className="absolute top-[10%] right-[20%] w-[400px] h-[320px] rounded-full bg-purple-500/15 blur-[110px]" />
-          </div>
-
           <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center space-y-6">
             {/* Semester Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/50 shadow-2xs">
-              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-              <span className="text-xs font-bold font-outfit text-indigo-700 dark:text-indigo-300">
-                Winter Semester 2026-2027 · CH20262705
-              </span>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-info/10 border border-info/20 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-info animate-pulse" />
+              <span className="text-xs font-bold font-outfit text-info">Winter Semester 2026-2027 · CH20262705</span>
             </div>
 
             {/* Main Headline */}
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black font-outfit tracking-tight text-slate-900 dark:text-white leading-[1.15]">
+            <h1 className="text-2xl sm:text-[32px] font-black font-outfit tracking-tight text-slate-900 dark:text-white leading-[1.15] text-balance">
               Find Your Friends & Classmates <br className="hidden sm:inline" />
-              <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">
-                In Every Section
-              </span>
+              <span className="text-info">In Every Section</span>
             </h1>
 
             {/* Subtitle */}
-            <p className="max-w-2xl mx-auto text-sm sm:text-base text-slate-600 dark:text-zinc-300 leading-relaxed">
+            <p className="max-w-2xl mx-auto text-sm sm:text-base text-slate-600 dark:text-zinc-300 leading-relaxed text-pretty">
               See who picked the same course slots, faculties, and classroom sections as you for next semester. Verified
               through VTOP with strict reciprocal privacy and complete opt-in control.
             </p>
@@ -192,7 +179,7 @@ export default function FriendFinderPageView() {
               <button
                 type="button"
                 onClick={() => openLoginSyncSession()}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold px-7 py-3.5 text-sm shadow-xl shadow-indigo-500/25 transition-all cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary/90 active:scale-[0.98] text-primary-foreground font-bold px-7 py-3.5 text-sm shadow-2xl transition-all cursor-pointer"
               >
                 <LogIn className="w-4 h-4" />
                 <span>Sign in with VTOP to Discover</span>
@@ -210,7 +197,7 @@ export default function FriendFinderPageView() {
             {/* Trust Highlights */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-6 max-w-4xl mx-auto text-left">
               <div className="p-4 rounded-2xl bg-white/70 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-white/[0.06] backdrop-blur-sm space-y-1.5 shadow-2xs">
-                <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                <div className="flex items-center gap-2 text-info">
                   <BadgeCheck className="w-5 h-5 shrink-0" />
                   <span className="font-bold text-xs sm:text-sm font-outfit text-slate-900 dark:text-white">
                     VTOP-Verified Students
@@ -222,7 +209,7 @@ export default function FriendFinderPageView() {
               </div>
 
               <div className="p-4 rounded-2xl bg-white/70 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-white/[0.06] backdrop-blur-sm space-y-1.5 shadow-2xs">
-                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                <div className="flex items-center gap-2 text-info">
                   <ShieldCheck className="w-5 h-5 shrink-0" />
                   <span className="font-bold text-xs sm:text-sm font-outfit text-slate-900 dark:text-white">
                     Reciprocal Privacy
@@ -234,7 +221,7 @@ export default function FriendFinderPageView() {
               </div>
 
               <div className="p-4 rounded-2xl bg-white/70 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-white/[0.06] backdrop-blur-sm space-y-1.5 shadow-2xs">
-                <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
+                <div className="flex items-center gap-2 text-info">
                   <EyeOff className="w-5 h-5 shrink-0" />
                   <span className="font-bold text-xs sm:text-sm font-outfit text-slate-900 dark:text-white">
                     Instant Opt-Out
@@ -252,10 +239,8 @@ export default function FriendFinderPageView() {
         <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12">
           <div className="space-y-10">
             <div className="text-center max-w-xl mx-auto space-y-2">
-              <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-                Interface Preview
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-black font-outfit text-slate-900 dark:text-white">
+              <span className="text-xs font-mono font-bold text-info uppercase tracking-wider">Interface Preview</span>
+              <h2 className="text-2xl sm:text-[32px] font-black font-outfit text-slate-900 dark:text-white text-balance">
                 How Friend Finder Works
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-400">
@@ -265,15 +250,15 @@ export default function FriendFinderPageView() {
             </div>
 
             {/* Illustrative Mock Section Card */}
-            <div className="max-w-2xl mx-auto rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white/95 dark:bg-zinc-900/90 shadow-xl overflow-hidden p-6 space-y-5">
+            <div className="max-w-2xl mx-auto rounded-[24px] border border-slate-200/90 dark:border-white/[0.08] bg-white/95 dark:bg-zinc-900/90 overflow-hidden p-6 space-y-5">
               <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-white/[0.06] pb-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/40 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400">
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-500/10 text-info border border-zinc-500/20 flex items-center justify-center shrink-0">
                     <BookOpen className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-outfit font-black text-base sm:text-lg text-slate-900 dark:text-white">
+                      <span className="font-outfit font-black text-base sm:text-xl text-slate-900 dark:text-white">
                         BCSE202L
                       </span>
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
@@ -285,17 +270,17 @@ export default function FriendFinderPageView() {
                     </p>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-slate-500 dark:text-zinc-400">
                       <span className="inline-flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-indigo-500" /> Slot A1+TA1
+                        <Clock className="w-3.5 h-3.5 text-info" /> Slot A1+TA1
                       </span>
                       <span className="inline-flex items-center gap-1">
-                        <UserRound className="w-3.5 h-3.5 text-indigo-500" /> Prof. Faculty Member
+                        <UserRound className="w-3.5 h-3.5 text-info" /> Prof. Faculty Member
                       </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="text-right shrink-0">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 text-xs font-bold">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-info/10 text-info border border-info/20 text-xs font-bold">
                     <UsersRound className="w-3.5 h-3.5" /> 3 classmates
                   </span>
                 </div>
@@ -308,33 +293,33 @@ export default function FriendFinderPageView() {
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/60 pl-1.5 pr-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-zinc-200">
-                    <span className="w-7 h-7 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center justify-center font-bold font-outfit text-xs">
+                    <span className="w-7 h-7 rounded-full bg-zinc-500/10 text-info border border-zinc-500/20 flex items-center justify-center font-bold font-outfit text-xs">
                       SA
                     </span>
                     <span>Student A</span>
-                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-700/80 text-zinc-700 dark:text-zinc-300">
+                    <span className="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-700/80 text-zinc-700 dark:text-zinc-300">
                       25BXX0001
                     </span>
                     <BadgeCheck className="w-4 h-4 text-emerald-500" />
                   </div>
 
                   <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/60 pl-1.5 pr-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-zinc-200">
-                    <span className="w-7 h-7 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 flex items-center justify-center font-bold font-outfit text-xs">
+                    <span className="w-7 h-7 rounded-full bg-zinc-500/10 text-info border border-zinc-500/20 flex items-center justify-center font-bold font-outfit text-xs">
                       SB
                     </span>
                     <span>Student B</span>
-                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-700/80 text-zinc-700 dark:text-zinc-300">
+                    <span className="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-700/80 text-zinc-700 dark:text-zinc-300">
                       25BXX0002
                     </span>
                     <BadgeCheck className="w-4 h-4 text-emerald-500" />
                   </div>
 
                   <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/60 pl-1.5 pr-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-zinc-200">
-                    <span className="w-7 h-7 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 flex items-center justify-center font-bold font-outfit text-xs">
+                    <span className="w-7 h-7 rounded-full bg-zinc-500/10 text-info border border-zinc-500/20 flex items-center justify-center font-bold font-outfit text-xs">
                       SC
                     </span>
                     <span>Student C</span>
-                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-700/80 text-zinc-700 dark:text-zinc-300">
+                    <span className="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-700/80 text-zinc-700 dark:text-zinc-300">
                       25BXX0003
                     </span>
                     <BadgeCheck className="w-4 h-4 text-emerald-500" />
@@ -347,7 +332,7 @@ export default function FriendFinderPageView() {
                 <button
                   type="button"
                   onClick={() => openLoginSyncSession()}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold py-3 text-xs shadow-md transition-all cursor-pointer"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary/90 active:scale-[0.98] text-primary-foreground font-bold py-3 text-sm shadow-2xl transition-all cursor-pointer"
                 >
                   <LogIn className="w-4 h-4" />
                   <span>Sign in with VTOP to see your actual classmates</span>
@@ -368,8 +353,8 @@ export default function FriendFinderPageView() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-6 rounded-3xl bg-white/80 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-white/[0.06] space-y-3">
-                <span className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <div className="p-6 rounded-[24px] bg-white/80 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-white/[0.06] space-y-3">
+                <span className="w-10 h-10 rounded-2xl bg-zinc-500/10 text-info border border-zinc-500/20 flex items-center justify-center">
                   <BookOpen className="w-5 h-5" />
                 </span>
                 <h3 className="font-bold font-outfit text-base text-slate-900 dark:text-white">
@@ -381,8 +366,8 @@ export default function FriendFinderPageView() {
                 </p>
               </div>
 
-              <div className="p-6 rounded-3xl bg-white/80 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-white/[0.06] space-y-3">
-                <span className="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+              <div className="p-6 rounded-[24px] bg-white/80 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-white/[0.06] space-y-3">
+                <span className="w-10 h-10 rounded-2xl bg-zinc-500/10 text-info border border-zinc-500/20 flex items-center justify-center">
                   <Star className="w-5 h-5" />
                 </span>
                 <h3 className="font-bold font-outfit text-base text-slate-900 dark:text-white">
@@ -394,8 +379,8 @@ export default function FriendFinderPageView() {
                 </p>
               </div>
 
-              <div className="p-6 rounded-3xl bg-white/80 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-white/[0.06] space-y-3">
-                <span className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <div className="p-6 rounded-[24px] bg-white/80 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-white/[0.06] space-y-3">
+                <span className="w-10 h-10 rounded-2xl bg-zinc-500/10 text-info border border-zinc-500/20 flex items-center justify-center">
                   <ShieldCheck className="w-5 h-5" />
                 </span>
                 <h3 className="font-bold font-outfit text-base text-slate-900 dark:text-white">Zero Impersonation</h3>
@@ -408,7 +393,7 @@ export default function FriendFinderPageView() {
           </section>
 
           {/* Disclaimer Callout Box */}
-          <section className="rounded-3xl border border-amber-500/25 bg-amber-500/5 dark:bg-amber-500/10 p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+          <section className="rounded-[24px] border border-amber-500/25 bg-amber-500/5 dark:bg-amber-500/10 p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
             <div className="space-y-1.5 max-w-2xl">
               <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold font-outfit text-base">
                 <ShieldAlert className="w-5 h-5 shrink-0" />
@@ -434,22 +419,19 @@ export default function FriendFinderPageView() {
           <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-between gap-4">
             <p>© {new Date().getFullYear()} Amaze Continuity Projects. Independent Student Timetable Tools.</p>
             <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-              <Link href="/" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+              <Link href="/" className="hover:text-info transition-colors">
                 Home
               </Link>
-              <Link href="/ffcs" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+              <Link href="/ffcs" className="hover:text-info transition-colors">
                 FFCS Planner
               </Link>
-              <Link
-                href="/friend-finder/disclaimer"
-                className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-              >
+              <Link href="/friend-finder/disclaimer" className="hover:text-info transition-colors">
                 Disclaimer
               </Link>
-              <Link href="/privacy" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+              <Link href="/privacy" className="hover:text-info transition-colors">
                 Privacy
               </Link>
-              <Link href="/terms" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+              <Link href="/terms" className="hover:text-info transition-colors">
                 Terms
               </Link>
             </div>

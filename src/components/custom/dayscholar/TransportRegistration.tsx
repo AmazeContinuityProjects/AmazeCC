@@ -1,11 +1,15 @@
 "use client";
+import { useState } from "react";
 import {
   Bus,
+  Check,
   CheckCircle2,
+  Copy,
   ExternalLink,
   MapPin,
   Navigation,
   QrCode,
+  X,
   XCircle,
 } from "lucide-react";
 import { RouteContacts, RouteSection, StopsTimeline, routeTone } from "./routeParts";
@@ -44,6 +48,9 @@ export default function TransportRegistration({
   loading,
   buses,
 }: TransportRegistrationProps) {
+  const [showHandoff, setShowHandoff] = useState(false);
+  const [copied, setCopied] = useState(false);
+
   const handleTrackBus = () => {
     if (!data?.busUrl) return;
     window.open(data.busUrl, "_blank", "noopener,noreferrer");
@@ -147,16 +154,86 @@ export default function TransportRegistration({
               Track my bus
             </button>
           )}
-          <a
-            href="https://vtopcc.vit.ac.in/vtop/transport/transportRegistration"
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => { setCopied(false); setShowHandoff((v) => !v); }}
+            aria-expanded={showHandoff}
             className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl border border-border-strong bg-surface px-4 py-3 text-sm font-black text-text-heading transition-colors hover:bg-surface-secondary dark:hover:bg-surface-hover"
           >
             <ExternalLink className="h-4 w-4" />
             Open in VTOP
-          </a>
+          </button>
         </div>
+
+        {/* External handoff: explain, carry the identifiers, copy, return here. */}
+        {showHandoff && (
+          <div className="mt-4 space-y-3 rounded-2xl border border-border-muted bg-surface-secondary p-4 text-left" role="status">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-black text-text-heading font-outfit tracking-tight">Opens VTOP</p>
+              <button
+                type="button"
+                onClick={() => setShowHandoff(false)}
+                aria-label="Stay in AmazeCC"
+                className="rounded-lg p-1 text-text-muted hover:bg-surface transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-xs font-medium text-text-secondary">
+              This opens VTOP&apos;s transport registration page in a new tab. Registration and payment are
+              managed there — this view stays here when you come back.
+            </p>
+            <div className="space-y-1.5 text-xs">
+              {[
+                ["Register no.", data.registerNumber || "Not on file"],
+                ["Payment ref", data.fpReference || "Not on file"],
+                ["Route", data.routeSelected || "Not on file"],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-3">
+                  <span className="text-text-muted">{label}</span>
+                  <span className="font-bold text-text-primary text-right">{value}</span>
+                </div>
+              ))}
+            </div>
+            <a
+              href="https://vtopcc.vit.ac.in/vtop/transport/transportRegistration"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700"
+            >
+              Open VTOP transport <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard?.writeText(
+                    [
+                      "VTOP transport registration: https://vtopcc.vit.ac.in/vtop/transport/transportRegistration",
+                      `Register no.: ${data.registerNumber || "Not on file"}`,
+                      `Payment ref: ${data.fpReference || "Not on file"}`,
+                      `Route: ${data.routeSelected || "Not on file"}`,
+                    ].join("\n"),
+                  );
+                  setCopied(true);
+                } catch {
+                  setCopied(false);
+                }
+              }}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border-strong bg-surface px-4 py-2.5 text-sm font-bold text-text-primary transition-colors hover:bg-surface-hover"
+            >
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? "Copied" : "Copy details"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowHandoff(false)}
+              className="w-full text-center text-xs font-bold text-text-secondary hover:text-text-heading"
+            >
+              Stay in AmazeCC
+            </button>
+          </div>
+        )}
       </div>
 
       {registeredRoute && <RegisteredRoute route={registeredRoute} />}
@@ -179,7 +256,7 @@ export default function TransportRegistration({
               />
             </div>
           </div>
-          <p className="mt-2 text-center text-[11px] font-medium text-text-muted">
+          <p className="mt-2 text-center text-xs font-medium text-text-muted">
             Scan this on the bus to mark your attendance.
           </p>
         </div>

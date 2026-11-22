@@ -16,6 +16,7 @@ import {
 import type { Task, TaskKind } from "@/types/tasks";
 import { isTaskOverdue } from "@/types/tasks";
 import { clickable } from "@/lib/a11y";
+import { BADGE_MD, FOCUS_RING, TEXT_CAPTION } from "@/lib/uiTokens";
 
 interface TaskCardProps {
   task: Task;
@@ -25,10 +26,7 @@ interface TaskCardProps {
   compact?: boolean;
 }
 
-export const KIND_CONFIG: Record<
-  TaskKind,
-  { label: string; badgeClass: string; icon: React.ElementType }
-> = {
+export const KIND_CONFIG: Record<TaskKind, { label: string; badgeClass: string; icon: React.ElementType }> = {
   test: {
     label: "Test",
     badgeClass: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
@@ -56,13 +54,7 @@ export const KIND_CONFIG: Record<
   },
 };
 
-export default function TaskCard({
-  task,
-  onEdit,
-  onStatusCycle,
-  onDelete,
-  compact = false,
-}: TaskCardProps) {
+export default function TaskCard({ task, onEdit, onStatusCycle, onDelete, compact = false }: TaskCardProps) {
   const overdue = isTaskOverdue(task);
   const kindMeta = KIND_CONFIG[task.kind] || KIND_CONFIG.homework;
   const KindIcon = kindMeta.icon;
@@ -84,7 +76,7 @@ export default function TaskCard({
   return (
     <div
       {...clickable(() => onEdit(task))}
-      className="group relative rounded-2xl card-surface border border-zinc-200/70 dark:border-zinc-800/80 p-3.5 shadow-2xs hover:shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all cursor-pointer text-left"
+      className={`group relative rounded-2xl card-surface border border-zinc-200/70 dark:border-zinc-800/80 p-3.5 shadow-2xs hover:shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all cursor-pointer text-left ${FOCUS_RING}`}
     >
       <div className="flex items-start justify-between gap-2.5">
         {/* Cycle status checkbox */}
@@ -94,7 +86,7 @@ export default function TaskCard({
             e.stopPropagation();
             onStatusCycle?.(task.id);
           }}
-          className="mt-0.5 shrink-0 text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+          className={`relative hit-expand mt-0.5 shrink-0 rounded-lg text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer ${FOCUS_RING}`}
           title={`Status: ${task.status}. Click to advance.`}
         >
           {task.status === "done" ? (
@@ -112,28 +104,24 @@ export default function TaskCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap mb-1">
             {/* Kind badge */}
-            <span
-              className={`text-[9.5px] font-extrabold uppercase px-2 py-0.5 rounded-md border flex items-center gap-1 ${kindMeta.badgeClass}`}
-            >
+            <span className={`${BADGE_MD} flex items-center gap-1 ${kindMeta.badgeClass}`}>
               <KindIcon className="w-2.5 h-2.5" />
               {kindMeta.label}
             </span>
 
             {/* Course Code chip */}
             {task.courseCode && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+              <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
                 {task.courseCode}
                 {task.component !== "both" && (
-                  <span className="opacity-70 ml-1 uppercase text-[10px]">
-                    ({task.component})
-                  </span>
+                  <span className="opacity-70 ml-1 uppercase text-xs">({task.component})</span>
                 )}
               </span>
             )}
 
             {/* Overdue chip */}
             {overdue && (
-              <span className="text-[9.5px] font-black uppercase px-1.5 py-0.5 rounded bg-red-500 text-white shrink-0 animate-pulse">
+              <span className="text-xs font-black uppercase px-1.5 py-0.5 rounded bg-red-500 text-white shrink-0 animate-pulse">
                 Overdue
               </span>
             )}
@@ -149,14 +137,10 @@ export default function TaskCard({
           </h4>
 
           {/* Notes summary if any */}
-          {task.notes && !compact && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1 mt-1 font-medium">
-              {task.notes}
-            </p>
-          )}
+          {task.notes && !compact && <p className={`${TEXT_CAPTION} line-clamp-1 mt-1 font-medium`}>{task.notes}</p>}
 
           {/* Metadata row: due date, chunks, pomodoro */}
-          <div className="flex items-center gap-2.5 mt-2 text-[11px] text-zinc-500 dark:text-zinc-400 flex-wrap">
+          <div className={`flex items-center gap-2.5 mt-2 ${TEXT_CAPTION} flex-wrap`}>
             {task.dueDate && (
               <span
                 className={`flex items-center gap-1 font-medium ${

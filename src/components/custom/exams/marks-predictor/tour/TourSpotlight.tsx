@@ -144,7 +144,7 @@ export function TourSpotlight() {
               }
         }
       >
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Step {tour.stepIndex + 1} of {tour.total}
         </p>
         <h3 className="mt-1 font-bold text-sm text-text-heading">{step.title}</h3>
@@ -154,7 +154,7 @@ export function TourSpotlight() {
           <button
             type="button"
             onClick={tour.stop}
-            className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-text-heading transition-colors px-2 py-1.5 rounded-lg cursor-pointer"
+            className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-text-heading active:text-text-heading transition-colors px-2 py-1.5 min-h-11 rounded-lg cursor-pointer"
           >
             <X className="w-3.5 h-3.5" /> Skip
           </button>
@@ -164,14 +164,14 @@ export function TourSpotlight() {
               onClick={tour.prev}
               disabled={tour.stepIndex === 0}
               aria-label="Previous step"
-              className="p-2 rounded-lg border border-border-strong text-muted-foreground hover:text-text-heading hover:bg-surface-secondary/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="p-2 min-h-11 min-w-11 flex items-center justify-center rounded-lg border border-border-strong text-muted-foreground hover:text-text-heading hover:bg-surface-secondary/50 active:bg-surface-secondary transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
             <button
               type="button"
               onClick={tour.next}
-              className="flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-3 py-2 min-h-11 rounded-lg transition-colors cursor-pointer"
             >
               {tour.stepIndex + 1 === tour.total ? "Finish" : "Next"}
               {tour.stepIndex + 1 !== tour.total && <ArrowRight className="w-3.5 h-3.5" />}

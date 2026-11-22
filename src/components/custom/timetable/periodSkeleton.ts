@@ -1,38 +1,70 @@
 /**
  * The period skeleton every timetable in the app is drawn on.
  *
- * `config.json` has no notion of a "column" or a "row" — it is a flat map of
- * day → slot id → time. Both the attendance timetable and the social grid
- * need a *grid* out of it, and they were each deriving one privately:
+ * The grid both the attendance timetable and the social grid share is built
+ * from the **generated unified timetable** (`src/lib/generated/timetable.ts`,
+ * derived from `src/data/timetable/campuses/chennai.json`). Each day's physical
+ * periods are already listed in chronological order in `PERIODS_BY_DAY`, and
+ * the tokens naming them — including the law and programme aliases that used to
+ * be separate `config.json` keys — are grouped on `period.slots[day]`.
  *
- *   - `attendance/TimetableGrid.tsx` built a `theoryPeriods` / `labPeriods`
- *     skeleton by pairing Monday's theory and lab slots index-wise and then
- *     projecting every other day onto it by matching **time strings**.
- *   - `social/CommonFreeSlotsGrid.tsx` built a `projectColumns()` that does
- *     the same pairing and the same projection, returning the slot ids
- *     instead of a period list.
+ * That replaces the old projection: Monday used to supply the skeleton, and
+ * every other day was projected onto it by matching `config.json` time strings
+ * with a ±7 minute fallback. Two copies of that projection (one in the
+ * attendance grid, one in the social grid) could drift apart on a data edit;
+ * the generated scaffolding is one source of truth for both.
  *
- * They agreed because they were derived from the same idea, not because they
- * were derived from the same code — which is exactly the arrangement that lets
- * a `config.json` edit move one grid and leave the other behind.
+ * ## The pairing
  *
- * ## The projection
- *
- * Monday supplies the skeleton: its slots are split theory/lab by the `L`
- * prefix, sorted by start time, and paired index-wise. Every other day is
- * projected by matching **time strings**, with a ±7 minute start-time
- * fallback. A theory slot and its paired lab run at the *same* time on the
- * same day (Monday has both `A1` and `L1` at 08:00-08:50), so the two halves
- * are indexed separately — keying on time alone would resolve both halves of a
- * pair to one slot, duplicating it and dropping the other from the grid.
+ * A band is a *display* pair: the theory period and the lab period that share
+ * a wall-clock slot. `PERIODS_BY_DAY` lists them in chronological order,
+ * so the i-th theory period of a day pairs with the i-th lab token of that day
+ * (`A1` with `L1` on Monday, `B1` with `L7` on Tuesday). Weekend lab tokens
+ * that live inside a theory period (`X04` -> `X11` + `L71`) are split out by
+ * the `L` prefix, the discriminator every grid has always used.
  *
  * The theory/lab pairing is a display concern. It never touches the data — a
  * busy map is a flat set of `DAY:SLOTID` keys regardless.
  */
 
 import type { TimetablePeriod } from "@amazecontinuityprojects/amazeui";
-import { DAYS, mondaySkeleton, slotMap, slotRange, type Day, type SlotMap } from "@/lib/social/schedule";
+import type { Day, SlotMap } from "@/lib/social/schedule";
+import { DAYS, PERIODS_BY_DAY, SLOT_MAP, TIMETABLE } from "@/lib/generated/timetable";
 import { buildBandRows, type Band } from "@/lib/buildBands";
+
+/** The generated flat slot map, in the legacy `SlotMap` shape the callers pass. */
+const GENERATED_SLOT_MAP = SLOT_MAP as unknown as SlotMap;
+
+/** The generated flat map is the default data source; the parameter remains for callers that pass one explicitly. */
+const PERIOD_BY_ID = new Map(TIMETABLE.periods.map((period) => [period.id, period]));
+
+/**
+ * The theory slot ids and lab slot ids of one day, in band (chronological)
+ * order, straight from the generated period scaffolding.
+ *
+ * No time strings and no tolerance: `PERIODS_BY_DAY` already encodes the order,
+ * and `period.slots[day]` already groups every programme token under the one
+ * physical period it belongs to.
+ */
+function dayBands(day: Day): { theory: string[]; lab: string[] } {
+  const theory: string[] = [];
+  const lab: string[] = [];
+  for (const periodId of PERIODS_BY_DAY[day] ?? []) {
+    const period = PERIOD_BY_ID.get(periodId);
+    if (!period || period.lunch) continue;
+    const tokens = period.slots[day] ?? [];
+    // The lab half is whichever tokens carry the `L` prefix — including the
+    // weekend ones embedded in a theory period such as `X04 -> L71`.
+    for (const token of tokens) {
+      if (token.startsWith("L")) lab.push(token);
+    }
+    // One theory token per period: the first (canonical/core) one, which is
+    // the id the old time-string projection resolved to on every day.
+    const theoryToken = tokens.find((token) => !token.startsWith("L"));
+    if (theoryToken) theory.push(theoryToken);
+  }
+  return { theory, lab };
+}
 
 /** The theory/lab slot pair inside one band, on one day. */
 export type Column = {
@@ -44,65 +76,20 @@ export type Column = {
  * The 12 bands of a week, per day.
  *
  * Exported for tests. The invariant the design rests on is that the projection
- * covers every slot in `config.json` exactly once per day — no gaps, no
+ * covers every physical period exactly once per day — no gaps, no
  * double-counting. That is asserted in `social-grid.test.ts` rather than
- * assumed, because a `config.json` edit that broke it would silently shift
- * the whole grid.
+ * assumed, because a data edit that broke it would silently shift the grid.
  */
-export function projectColumns(map: SlotMap = slotMap): Record<Day, Column[]> {
-  const { theory, lab } = mondaySkeleton(map);
-  const count = Math.max(theory.length, lab.length);
+export function projectColumns(map: SlotMap = GENERATED_SLOT_MAP): Record<Day, Column[]> {
   const out = {} as Record<Day, Column[]>;
 
-  for (const day of DAYS) {
-    const daySlots = Object.entries(map[day] ?? {});
-    // Indexed by time string AND half, because a theory slot and its paired lab
-    // run at the SAME time on the same day - Monday has both `A1` and `L1` at
-    // 08:00-08:50, and Tuesday has `B1` and `L7` there. Keying on time alone
-    // silently resolves both halves of a pair to the same slot, which is a
-    // duplicate and drops the other slot from the grid entirely.
-    //
-    // The `L` prefix is the only lab discriminator anywhere in the codebase, so
-    // it is what separates the two indexes.
-    const byTimeTheory = new Map<string, string>();
-    const byTimeLab = new Map<string, string>();
-    const byStartTheory = new Map<number, string>();
-    const byStartLab = new Map<number, string>();
-    for (const [slotId, entry] of daySlots) {
-      const t = String(entry.time).replace(/\s+/g, "");
-      const start = slotRange(entry.time).start;
-      if (slotId.startsWith("L")) {
-        if (!byTimeLab.has(t)) byTimeLab.set(t, slotId);
-        if (!byStartLab.has(start)) byStartLab.set(start, slotId);
-      } else {
-        if (!byTimeTheory.has(t)) byTimeTheory.set(t, slotId);
-        if (!byStartTheory.has(start)) byStartTheory.set(start, slotId);
-      }
-    }
-
-    const resolve = (src: { slotId: string; start: number } | null | undefined, isLab: boolean) => {
-      if (!src) return null;
-      const time = String(map.MON[src.slotId].time).replace(/\s+/g, "");
-      const byTime = isLab ? byTimeLab : byTimeTheory;
-      const byStart = isLab ? byStartLab : byStartTheory;
-      const exact = byTime.get(time);
-      if (exact) return { day, slotId: exact };
-      // A safety net for a rounding difference in a future config edit, never
-      // used on the current vocabulary.
-      for (const [start, slotId] of byStart) {
-        if (Math.abs(start - src.start) <= 7) return { day, slotId };
-      }
-      return null;
-    };
-
-    out[day] = Array.from({ length: count }, (_, i) => {
-      const t = theory[i];
-      const l = lab[i];
-      return {
-        theory: resolve(t, false),
-        lab: resolve(l, true),
-      };
-    });
+  for (const day of DAYS as readonly Day[]) {
+    const { theory, lab } = dayBands(day);
+    const count = Math.max(theory.length, lab.length);
+    out[day] = Array.from({ length: count }, (_, i) => ({
+      theory: theory[i] ? { day, slotId: theory[i] } : null,
+      lab: lab[i] ? { day, slotId: lab[i] } : null,
+    }));
   }
   return out;
 }
@@ -125,7 +112,7 @@ export type PeriodSkeleton = {
  * indexing the other would put a slot in a different row than the timetable
  * it is drawn next to.
  */
-export function buildPeriodSkeleton(map: SlotMap = slotMap): PeriodSkeleton {
+export function buildPeriodSkeleton(map: SlotMap = GENERATED_SLOT_MAP): PeriodSkeleton {
   const columns = projectColumns(map);
   const count = columns.MON?.length ?? 0;
 
@@ -134,10 +121,12 @@ export function buildPeriodSkeleton(map: SlotMap = slotMap): PeriodSkeleton {
       const anchor = columns.MON?.[index]?.[half];
       if (!anchor) return { start: "", end: "", days: {} };
 
-      const time = map.MON[anchor.slotId].time;
-      const [start, end] = time.split("-");
+      // The clock strings are indices into the generated flat slot map, not a
+      // second source of truth. Monday supplies the band's time, as before.
+      const time = map.MON?.[anchor.slotId]?.time ?? SLOT_MAP.MON?.[anchor.slotId]?.time ?? "";
+      const [start, end] = String(time).split("-");
       const days: Record<string, string> = {};
-      for (const day of DAYS) {
+      for (const day of DAYS as readonly Day[]) {
         const match = columns[day]?.[index]?.[half];
         if (match) days[day.toLowerCase()] = match.slotId;
       }

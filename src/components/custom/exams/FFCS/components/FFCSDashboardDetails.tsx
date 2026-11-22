@@ -22,8 +22,9 @@ import { FacultyAvatar } from "./FacultyAvatar";
 import type { AddedCourse } from "@/lib/ffcsTypes";
 import { periodsForSlot } from "@/lib/slots";
 import { dayOccupancy, freeHalfDays, timetableMetrics } from "@/lib/timetableMetrics";
-import { getTimetableSchema } from "@/lib/campusSchema";
+import { FFCS_SCHEMA } from "@/lib/ffcsTimetableData";
 import { getFacultyReview, loadVitfacCatalog, useVitfacEnabled, useVitfacReview } from "@/lib/vitfacService";
+import { TEXT_BLOCK } from "@/lib/uiTokens";
 
 /**
  * The dashboard detail sheets of FFCSDashboardHeader: the mobile widget sheet,
@@ -158,7 +159,7 @@ export function ClashDetails({
       accent="bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400"
     >
       {courseClashes.length === 0 && blockedSlotClashes.length === 0 ? (
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
           This timetable has no course or blocked-slot clashes.
         </div>
       ) : (
@@ -179,12 +180,12 @@ export function ClashDetails({
                     className="flex min-w-0 items-center gap-2 rounded-lg border border-border-strong bg-surface p-2"
                   >
                     <FacultyAvatar employeeId={course.employeeId} name={course.faculty} size="sm" />
-                    <div className="min-w-0 flex-1">
+                    <div className={TEXT_BLOCK}>
                       <p className="truncate text-xs font-extrabold text-text-heading">{course.code}</p>
-                      <p className="truncate text-[11px] text-muted-foreground">
+                      <p className="truncate text-[12px] text-muted-foreground">
                         {course.faculty || "Faculty not listed"}
                       </p>
-                      <p className="truncate text-[10px] font-semibold text-muted-foreground">
+                      <p className="truncate text-[12px] font-semibold text-muted-foreground">
                         {course.slots.join(" + ") || "No slot"}
                       </p>
                     </div>
@@ -201,7 +202,7 @@ export function ClashDetails({
                 ))}
               </div>
               {periodA.start !== periodB.start || periodA.end !== periodB.end ? (
-                <p className="mt-2 text-[10px] text-muted-foreground">
+                <p className="text-pretty mt-2 text-[12px] text-muted-foreground">
                   {courseB.code} period: {periodB.start}–{periodB.end}
                 </p>
               ) : null}
@@ -213,11 +214,11 @@ export function ClashDetails({
               className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.03] p-3"
             >
               <FacultyAvatar employeeId={course.employeeId} name={course.faculty} size="sm" />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-extrabold text-text-heading">
+              <div className={TEXT_BLOCK}>
+                <p className="text-pretty text-xs font-extrabold text-text-heading">
                   {course.code} · blocked slot {slot}
                 </p>
-                <p className="truncate text-[11px] text-muted-foreground">
+                <p className="truncate text-[12px] text-muted-foreground">
                   {course.faculty || "Faculty not listed"} · {course.slots.join(" + ")}
                 </p>
               </div>
@@ -239,7 +240,7 @@ export function ClashDetails({
 }
 
 export function WeeklyRhythmDetails({ courses, onClose }: { courses: AddedCourse[]; onClose: () => void }) {
-  const schema = getTimetableSchema();
+  const schema = FFCS_SCHEMA;
   const vitfacEnabled = useVitfacEnabled();
   const metrics = useMemo(() => timetableMetrics(courses, schema), [courses, schema]);
   const free = useMemo(() => new Set(freeHalfDays(courses, schema)), [courses, schema]);
@@ -394,7 +395,7 @@ export function WeeklyRhythmDetails({ courses, onClose }: { courses: AddedCourse
       <div className="space-y-4">
         {vitfacEnabled && (
           <section className="space-y-2">
-            <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            <h3 className="text-balance text-xs font-bold uppercase tracking-wide text-muted-foreground">
               Faculty ratings in this timetable
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -406,12 +407,12 @@ export function WeeklyRhythmDetails({ courses, onClose }: { courses: AddedCourse
                   key={label}
                   className={`rounded-xl border p-3 ${tone === "emerald" ? "border-emerald-500/20 bg-emerald-500/5" : "border-amber-500/20 bg-amber-500/5"}`}
                 >
-                  <p className="text-[10px] uppercase font-bold tracking-wide text-muted-foreground">{label}</p>
+                  <p className="text-[12px] uppercase font-bold tracking-wide text-muted-foreground">{label}</p>
                   {entry ? (
                     <>
                       <div className="mt-1 flex items-center gap-2">
                         <FacultyAvatar employeeId={entry.course.employeeId} name={entry.course.faculty} size="md" />
-                        <div className="min-w-0 flex-1">
+                        <div className={TEXT_BLOCK}>
                           <p className="truncate text-sm font-extrabold text-text-heading">{entry.course.faculty}</p>
                           <span
                             className={`text-xs font-black ${tone === "emerald" ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}
@@ -420,15 +421,15 @@ export function WeeklyRhythmDetails({ courses, onClose }: { courses: AddedCourse
                           </span>
                         </div>
                       </div>
-                      <p className="text-[10px] leading-relaxed text-muted-foreground mt-1">
+                      <p className="text-pretty text-[12px] leading-relaxed text-muted-foreground mt-1">
                         {facultyQualitySummary(entry)}
                       </p>
-                      <p className="text-[10px] text-muted-foreground mt-1">
+                      <p className="text-pretty text-[12px] text-muted-foreground mt-1">
                         {entry.review.reviews} student review{entry.review.reviews === 1 ? "" : "s"}
                       </p>
                     </>
                   ) : (
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-pretty text-xs text-muted-foreground mt-1">
                       {facultyLoading ? "Loading faculty reviews…" : "No reviewed faculty in this timetable."}
                     </p>
                   )}
@@ -439,15 +440,19 @@ export function WeeklyRhythmDetails({ courses, onClose }: { courses: AddedCourse
         )}
 
         <section className="space-y-2">
-          <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Day-by-day schedule</h3>
+          <h3 className="text-balance text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            Day-by-day schedule
+          </h3>
           <div className="space-y-2">
             {days.map((day) => (
               <div key={day.id} className="rounded-xl border border-border-strong bg-surface p-3">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-bold text-text-heading">{day.label}</span>
-                  <span className="text-[11px] text-muted-foreground">{(day.gapMinutes / 60).toFixed(1)}h gaps</span>
+                  <span className="text-[12px] text-muted-foreground tabular-nums">
+                    {(day.gapMinutes / 60).toFixed(1)}h gaps
+                  </span>
                 </div>
-                <div className="flex flex-wrap gap-1.5 mt-2 text-[10px]">
+                <div className="flex flex-wrap gap-1.5 mt-2 text-[12px]">
                   <span
                     className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 ${day.morningOccupied ? "bg-amber-500/10 text-amber-700 dark:text-amber-400" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"}`}
                   >
@@ -460,7 +465,7 @@ export function WeeklyRhythmDetails({ courses, onClose }: { courses: AddedCourse
                   </span>
                 </div>
                 {day.classes.length > 0 && (
-                  <p className="text-[11px] text-muted-foreground mt-2">
+                  <p className="text-pretty text-[12px] text-muted-foreground mt-2">
                     {day.classes[0].start}–{day.classes[day.classes.length - 1].end} · {day.classes.length} class period
                     {day.classes.length === 1 ? "" : "s"}
                   </p>
@@ -470,7 +475,9 @@ export function WeeklyRhythmDetails({ courses, onClose }: { courses: AddedCourse
           </div>
         </section>
         <section className="space-y-2">
-          <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Free half-days</h3>
+          <h3 className="text-balance text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            Free half-days
+          </h3>
           {freeLabels.length ? (
             <div className="flex flex-wrap gap-1.5">
               {freeLabels.map((label) => (
@@ -488,7 +495,9 @@ export function WeeklyRhythmDetails({ courses, onClose }: { courses: AddedCourse
         </section>
         {metrics.gapDetails.length > 0 && (
           <section className="space-y-2">
-            <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Largest class gaps</h3>
+            <h3 className="text-balance text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              Largest class gaps
+            </h3>
             {[...metrics.gapDetails]
               .sort((a, b) => b.durationMins - a.durationMins)
               .slice(0, 5)
@@ -497,10 +506,10 @@ export function WeeklyRhythmDetails({ courses, onClose }: { courses: AddedCourse
                   key={`${gap.day}-${gap.startMin}-${index}`}
                   className="flex items-center justify-between gap-3 text-xs rounded-lg bg-surface-secondary/60 px-3 py-2"
                 >
-                  <span className="font-semibold text-text-heading">
+                  <span className="font-semibold text-text-heading tabular-nums">
                     {DAY_LABELS[gap.day] ?? gap.day}: {gap.fromTime}–{gap.toTime}
                   </span>
-                  <span className="text-muted-foreground shrink-0">{gap.durationMins} min</span>
+                  <span className="text-muted-foreground shrink-0 tabular-nums">{gap.durationMins} min</span>
                 </div>
               ))}
           </section>
@@ -508,7 +517,7 @@ export function WeeklyRhythmDetails({ courses, onClose }: { courses: AddedCourse
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {stats.map((stat) => (
             <div key={stat.label} className="rounded-xl border border-border-strong bg-surface p-3">
-              <p className="text-[10px] uppercase font-bold tracking-wide text-muted-foreground">{stat.label}</p>
+              <p className="text-[12px] uppercase font-bold tracking-wide text-muted-foreground">{stat.label}</p>
               <p className="text-sm font-extrabold text-text-heading mt-1">{stat.value}</p>
             </div>
           ))}
@@ -556,9 +565,11 @@ export function CourseOptionQuality({
           <span className="text-xs font-semibold text-text-heading truncate">{faculty || "Faculty not listed"}</span>
         </div>
         <span className="flex items-center gap-2">
-          <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">{slots || "No slot"}</span>
+          <span className="text-[12px] font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">
+            {slots || "No slot"}
+          </span>
           <span
-            className={`text-[9px] font-bold uppercase tracking-wide ${selected ? "text-indigo-600 dark:text-indigo-400" : "text-muted-foreground"}`}
+            className={`text-[12px] font-bold uppercase tracking-wide ${selected ? "text-indigo-600 dark:text-indigo-400" : "text-muted-foreground"}`}
           >
             {selected ? "Selected" : "Select"}
           </span>
@@ -566,57 +577,57 @@ export function CourseOptionQuality({
       </div>
       <div className="flex flex-wrap items-center gap-1.5 mt-2">
         {!vitfacEnabled ? null : loading ? (
-          <span className="text-[10px] text-muted-foreground">Loading Vitfac…</span>
+          <span className="text-[12px] text-muted-foreground">Loading Vitfac…</span>
         ) : review && review.reviews > 0 ? (
           <>
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+            <span className="inline-flex items-center gap-1 text-[12px] font-bold text-emerald-700 dark:text-emerald-400">
               <Star className="w-3 h-3" />
               {review.wPct}% W · {review.reviews} reviews
             </span>
             {review.metrics && (
               <>
                 {typeof review.metrics.lecture === "number" && (
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-[12px] text-muted-foreground">
                     <BookOpen className="w-3 h-3 inline" /> {review.metrics.lecture.toFixed(1)}/5
                   </span>
                 )}
                 {typeof review.metrics.da === "number" && (
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-[12px] text-muted-foreground">
                     <FileText className="w-3 h-3 inline" /> DA {review.metrics.da.toFixed(1)}/5
                   </span>
                 )}
                 {typeof review.metrics.vibe === "number" && (
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-[12px] text-muted-foreground">
                     <Smile className="w-3 h-3 inline" /> {review.metrics.vibe.toFixed(1)}/5
                   </span>
                 )}
               </>
             )}
             {typeof review.metrics?.da === "number" && (
-              <span className="text-[10px] font-semibold text-purple-700 dark:text-purple-400">
+              <span className="text-[12px] font-semibold text-purple-700 dark:text-purple-400 tabular-nums">
                 DA marks {review.metrics.da.toFixed(1)}/5
               </span>
             )}
             {lore.map((item) => (
-              <span key={item.text} className="text-[10px] text-emerald-700 dark:text-emerald-400">
+              <span key={item.text} className="text-[12px] text-emerald-700 dark:text-emerald-400">
                 {item.text}
               </span>
             ))}
             {cautionLore.map((item) => (
-              <span key={item.text} className="text-[10px] text-amber-700 dark:text-amber-400">
+              <span key={item.text} className="text-[12px] text-amber-700 dark:text-amber-400">
                 {item.text}
               </span>
             ))}
           </>
         ) : (
-          <span className="text-[10px] text-muted-foreground">No Vitfac review data</span>
+          <span className="text-[12px] text-muted-foreground tabular-nums">No Vitfac review data</span>
         )}
         {clashes.length ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 dark:text-red-400">
+          <span className="inline-flex items-center gap-1 text-[12px] font-bold text-red-600 dark:text-red-400">
             <AlertTriangle className="w-3 h-3" /> Clash with {clashes.join(", ")}
           </span>
         ) : (
-          <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">No timetable clashes</span>
+          <span className="text-[12px] font-semibold text-emerald-700 dark:text-emerald-400">No timetable clashes</span>
         )}
       </div>
       <span className="sr-only">{courseCode}</span>

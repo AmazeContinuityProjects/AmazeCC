@@ -144,11 +144,11 @@ export default function FacultyPriorityModal({
     >
       <p className="text-xs text-muted-foreground leading-relaxed -mt-1">
         {courseTitle}
-        <span className="block mt-1 text-[11px]">
+        <span className="block mt-1 text-[12px] tabular-nums">
           #1 is searched first. Faculties you remove rank below every name you keep.
         </span>
         {selectedKeys && (
-          <span className="mt-1.5 block rounded-lg border border-indigo-500/20 bg-indigo-500/5 px-2 py-1.5 text-[11px] text-indigo-500 dark:text-indigo-400">
+          <span className="mt-1.5 block rounded-lg border border-indigo-500/20 bg-indigo-500/5 px-2 py-1.5 text-[12px] text-indigo-500 dark:text-indigo-400">
             Ranked among the {pool.length} {pool.length === 1 ? "faculty" : "faculties"} you selected for {courseCode} —
             generation only considers these for this course.
           </span>
@@ -172,7 +172,7 @@ export default function FacultyPriorityModal({
               {index + 1}
             </span>
             <span className="flex-1 min-w-0 text-sm text-text-heading font-semibold truncate">{name}</span>
-            <span className="text-[10px] font-bold text-muted-foreground bg-surface-secondary border border-border-strong/60 px-1.5 py-0.5 rounded-md shrink-0 whitespace-nowrap">
+            <span className="text-[12px] font-bold text-muted-foreground bg-surface-secondary border border-border-strong/60 px-1.5 py-0.5 rounded-md shrink-0 whitespace-nowrap tabular-nums">
               {countOf(name)} offering{countOf(name) === 1 ? "" : "s"}
             </span>
             <span className="flex items-center shrink-0">

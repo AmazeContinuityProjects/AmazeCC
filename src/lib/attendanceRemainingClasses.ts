@@ -1,3 +1,5 @@
+import { slotRange } from "./social/schedule";
+
 export type CalendarEvent = {
   text: string;
   type: "working" | "holiday";
@@ -51,22 +53,12 @@ export function countRemainingClasses(
     "december",
   ];
 
-  let startHour = 8,
-    startMinute = 0;
-  if (slotTime && slotTime.includes("-")) {
-    const [start] = slotTime.split("-");
-    const [hRaw, mRaw] = start.split(":");
-    let h = Number(hRaw);
-    const m = Number(mRaw) || 0;
-    if (h >= 8 && h <= 11) {
-    } else if (h === 12) {
-      h = 12;
-    } else if (h >= 1 && h <= 7) {
-      h += 12;
-    }
-    startHour = h;
-    startMinute = m;
-  }
+  // Use the one time parser instead of a local copy of the "1–7 is PM" rule.
+  // The shared helper reads the unified vocabulary; an empty/unusable range
+  // keeps the historical 08:00 default rather than becoming midnight.
+  const classStart = slotTime && slotTime.includes("-") ? slotRange(slotTime).start : 0;
+  const startHour = classStart > 0 ? Math.floor(classStart / 60) : 8;
+  const startMinute = classStart > 0 ? classStart % 60 : 0;
 
   const allDays = calendarMonths.flatMap((monthObj) => {
     const monthStr = monthObj.month?.toString().toLowerCase() || "";

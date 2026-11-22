@@ -146,10 +146,10 @@ export function TourSpotlight() {
               }
         }
       >
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        <p className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">
           Step {tour.stepIndex + 1} of {tour.total}
         </p>
-        <h3 className="mt-1 font-bold text-sm text-text-heading">{step.title}</h3>
+        <h3 className="text-balance mt-1 font-bold text-sm text-text-heading">{step.title}</h3>
         <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">{step.body}</p>
 
         <div className="mt-3 flex items-center justify-between gap-2">

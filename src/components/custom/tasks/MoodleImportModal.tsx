@@ -7,6 +7,7 @@ import BottomSheet from "../shared/BottomSheet";
 import { moodleDataAtom, tasksAtom } from "@/store/dataAtoms";
 import { previewMoodleImport, importMoodleTasks } from "@/lib/moodleImport";
 import { clickable } from "@/lib/a11y";
+import { FOCUS_RING, TEXT_CAPTION } from "@/lib/uiTokens";
 
 interface MoodleImportModalProps {
   isOpen: boolean;
@@ -14,11 +15,7 @@ interface MoodleImportModalProps {
   onImportComplete: () => void;
 }
 
-export default function MoodleImportModal({
-  isOpen,
-  onClose,
-  onImportComplete,
-}: MoodleImportModalProps) {
+export default function MoodleImportModal({ isOpen, onClose, onImportComplete }: MoodleImportModalProps) {
   const [moodleData] = useAtom(moodleDataAtom);
   const [tasks, setTasks] = useAtom(tasksAtom);
 
@@ -55,9 +52,7 @@ export default function MoodleImportModal({
   };
 
   const handleImport = () => {
-    const itemsToImport = previews.filter((p) =>
-      selectedUrls.has(p.url || p.title)
-    );
+    const itemsToImport = previews.filter((p) => selectedUrls.has(p.url || p.title));
     const updated = importMoodleTasks(itemsToImport);
     setTasks(updated);
     onImportComplete();
@@ -86,9 +81,7 @@ export default function MoodleImportModal({
               <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                 No LMS assignments found in Moodle data.
               </p>
-              <p className="text-[11px] text-zinc-400">
-                Make sure you are logged in to LMS or have synced Moodle.
-              </p>
+              <p className="text-xs text-zinc-400">Make sure you are logged in to LMS or have synced Moodle.</p>
             </div>
           ) : (
             <>
@@ -103,9 +96,7 @@ export default function MoodleImportModal({
                     onClick={toggleSelectAll}
                     className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                   >
-                    {selectedUrls.size === availableToImport.length
-                      ? "Deselect All"
-                      : "Select All"}
+                    {selectedUrls.size === availableToImport.length ? "Deselect All" : "Select All"}
                   </button>
                 </div>
               )}
@@ -119,12 +110,12 @@ export default function MoodleImportModal({
                     <div
                       key={key}
                       {...clickable(() => !item.alreadyImported && toggleItem(key))}
-                      className={`p-3 rounded-xl border flex items-start gap-3 transition-all ${
+                      className={`p-3 rounded-xl border flex items-start gap-3 transition-all ${FOCUS_RING} ${
                         item.alreadyImported
                           ? "bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-200/50 dark:border-zinc-800/50 opacity-60 cursor-default"
                           : isChecked
-                          ? "bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-500/40 cursor-pointer shadow-2xs"
-                          : "bg-white dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800 cursor-pointer hover:border-zinc-300"
+                            ? "bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-500/40 cursor-pointer shadow-2xs"
+                            : "bg-white dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800 cursor-pointer hover:border-zinc-300"
                       }`}
                     >
                       <input
@@ -138,30 +129,31 @@ export default function MoodleImportModal({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap mb-1">
                           {item.courseCode && (
-                            <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                            <span className="text-xs font-bold px-1.5 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                               {item.courseCode}
                             </span>
                           )}
                           {item.alreadyImported && (
-                            <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded">
+                            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded">
                               Already Imported
                             </span>
                           )}
                           {item.isPast && !item.alreadyImported && (
-                            <span className="text-[9px] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.2 rounded">
+                            <span className="text-xs font-bold text-red-500 bg-red-500/10 px-1.5 py-0.2 rounded">
                               Past Due
                             </span>
                           )}
                         </div>
 
-                        <h4 className="text-xs font-bold text-zinc-900 dark:text-white font-outfit leading-snug">
+                        <h4 className="text-balance text-xs font-bold text-zinc-900 dark:text-white font-outfit leading-snug">
                           {item.title}
                         </h4>
 
                         {item.dueDate && (
-                          <p className="text-[10.5px] text-zinc-500 dark:text-zinc-400 mt-1 flex items-center gap-1">
+                          <p className={`${TEXT_CAPTION} mt-1 flex items-center gap-1`}>
                             <Clock className="w-3 h-3 text-zinc-400" />
-                            Due: {new Date(item.dueDate).toLocaleString(undefined, {
+                            Due:{" "}
+                            {new Date(item.dueDate).toLocaleString(undefined, {
                               month: "short",
                               day: "numeric",
                               hour: "2-digit",

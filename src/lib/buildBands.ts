@@ -50,7 +50,67 @@
 
 import type { AddedCourse, GapDetail, TimetablePeriod } from "@amazecontinuityprojects/amazeui";
 import { fmt, toMinutes, dayKeyForDate } from "@/lib/social/schedule";
-import { courseInPeriod, hasSlot, ownSlotSpelling } from "@/lib/slots";
+import { DAYS as GENERATED_DAYS, equivalentTokens, type DayId as GeneratedDayId } from "@/lib/generated/timetable";
+import {
+  courseInPeriod as legacyCourseInPeriod,
+  hasSlot as legacyHasSlot,
+  ownSlotSpelling as legacyOwnSlotSpelling,
+} from "@/lib/slots";
+
+/**
+ * Every token that names the same physical period as `slot` on `day`, from the
+ * generated schema. A law course booked `A` and an engineering one booked `A1`
+ * are the same Monday 8:00 period, and the generated data already carries that
+ * equivalence as first-class slots and aliases.
+ *
+ * The legacy `slots.ts` rules remain as a fallback for a token the generated
+ * vocabulary cannot resolve — a custom period in a test fixture, say — so the
+ * projection keeps answering for inputs outside the canonical schema.
+ */
+function equivalentsFor(dayId: string, slot: string): Set<string> {
+  const day = String(dayId ?? "")
+    .trim()
+    .toUpperCase() as GeneratedDayId;
+  if (!(GENERATED_DAYS as readonly string[]).includes(day)) return new Set();
+  const result = new Set<string>();
+  for (const token of equivalentTokens(day, slot)) result.add(String(token).trim().toUpperCase());
+  return result;
+}
+
+const matchesSlot = (dayId: string, slots: Iterable<string>, slot: string): boolean => {
+  const equivalents = equivalentsFor(dayId, slot);
+  if (equivalents.size) {
+    for (const candidate of slots) {
+      if (equivalents.has(String(candidate).trim().toUpperCase())) return true;
+    }
+  }
+  return legacyHasSlot(slots, slot);
+};
+
+const courseForSlot = (dayId: string, courses: readonly AddedCourse[], slot: string): AddedCourse | null => {
+  const equivalents = equivalentsFor(dayId, slot);
+  if (equivalents.size) {
+    for (const course of courses) {
+      for (const own of course.slots ?? []) {
+        if (equivalents.has(String(own).trim().toUpperCase())) return course;
+      }
+    }
+  }
+  return legacyCourseInPeriod(courses, slot);
+};
+
+/** The spelling the course actually carries, from the generated equivalences. */
+const spellingForSlot = (dayId: string, courses: readonly AddedCourse[], slot: string): string => {
+  const equivalents = equivalentsFor(dayId, slot);
+  if (equivalents.size) {
+    for (const course of courses) {
+      for (const own of course.slots ?? []) {
+        if (equivalents.has(String(own).trim().toUpperCase())) return own;
+      }
+    }
+  }
+  return legacyOwnSlotSpelling(courses, slot);
+};
 
 /**
  * Tolerance for gluing two adjacent slots of the same course into one cell.
@@ -326,7 +386,7 @@ export function buildVerticalGrid({
        * by the slot on the course, so a blocked `A` has to be a `A` here for
        * `onToggleBlockSlot` to record something that can match.
        */
-      const shownRunSlots = run ? run.slots.map((s) => ownSlotSpelling([run.course], s)) : [];
+      const shownRunSlots = run ? run.slots.map((s) => spellingForSlot(dayId, [run.course], s)) : [];
       const slots = shownRunSlots.length > 0 ? shownRunSlots : bandSlots;
       const label = shownRunSlots.length > 0 ? shownRunSlots.join("+") : bandSlots.join(" / ");
       // "L1+L2+L3" cannot survive a 40px column, so the compact density reads
@@ -342,7 +402,7 @@ export function buildVerticalGrid({
       // Read through `hasSlot` because a blocked slot may be recorded in either
       // spelling: a law student blocks "A" and an engineering one blocks "A1",
       // and both mean the same period.
-      const isBlocked = (s: string) => hasSlot(blockedSlots ?? [], s);
+      const isBlocked = (s: string) => matchesSlot(dayId, blockedSlots ?? [], s);
       const blocked =
         slots.length > 0 &&
         (runSlots.length > 0 ? runSlots.every(isBlocked) : bandSlots.length > 0 && bandSlots.every(isBlocked));
@@ -443,7 +503,7 @@ function buildRuns(
       continue;
     }
 
-    const course = courseInPeriod(courses, slotId);
+    const course = courseForSlot(dayId, courses, slotId);
     if (!course) {
       // Free bands never start or extend a run.
       open = null;

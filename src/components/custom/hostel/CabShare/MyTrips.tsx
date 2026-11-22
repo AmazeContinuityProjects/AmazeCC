@@ -35,7 +35,7 @@ import {
   ToneBadge,
   ToneDot,
 } from "../../shared/primitives";
-import { LIST_ROW, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
+import { FOCUS_RING, LIST_ROW, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 
 /** The three states a request can be in, as tone-map keys. */
 const REQUEST_TONE: Record<string, string> = {
@@ -224,14 +224,14 @@ export default function MyTrips({
                                     <IconButton
                                       title="Accept request"
                                       onClick={() => handleMatchAction(req.match_id, "accept")}
-                                      className="hover:bg-emerald-500/10"
+                                      className={`relative hit-expand ${FOCUS_RING} hover:bg-emerald-500/10`}
                                     >
                                       <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                                     </IconButton>
                                     <IconButton
                                       title="Reject request"
                                       onClick={() => handleMatchAction(req.match_id, "reject")}
-                                      className="hover:bg-red-500/10"
+                                      className={`relative hit-expand ${FOCUS_RING} hover:bg-red-500/10`}
                                     >
                                       <X className="h-4 w-4 text-red-600 dark:text-red-400" />
                                     </IconButton>

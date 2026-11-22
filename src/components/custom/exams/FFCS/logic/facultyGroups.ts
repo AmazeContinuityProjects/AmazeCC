@@ -1,8 +1,8 @@
-import chennaiSchema from "@/data/campus/chennai.json";
 import type { TimetablePeriod } from "@amazecontinuityprojects/amazeui";
 import { COLORS } from "@/lib/ffcsConstants";
 import type { AddedCourse } from "@/lib/ffcsTypes";
 import { splitSlots } from "@/lib/slots";
+import { FFCS_SCHEMA } from "@/lib/ffcsTimetableData";
 import { loadCourseCatalog } from "@/lib/courseCatalog";
 
 /**
@@ -226,8 +226,8 @@ export function facultyGroupToAddedCourses(group: FacultyNameGroup): AddedCourse
  * are filtered the same way the planner filters them — lunch is not a class.
  */
 export function facultySchedulePeriods(): { theory: TimetablePeriod[]; lab: TimetablePeriod[] } {
-  const theory = (chennaiSchema.theory as TimetablePeriod[]).filter((period) => !period.lunch);
-  const lab = (chennaiSchema.lab as TimetablePeriod[]).filter((period) => !period.lunch);
+  const theory = (FFCS_SCHEMA.theory as TimetablePeriod[]).filter((period) => !period.lunch);
+  const lab = (FFCS_SCHEMA.lab as TimetablePeriod[]).filter((period) => !period.lunch);
   return { theory, lab };
 }
 

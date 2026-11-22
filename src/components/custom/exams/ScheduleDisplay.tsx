@@ -19,7 +19,7 @@ import { downloadExamSchedulePdf } from "@/lib/exportTimetable";
 import { generateExamScheduleHtml } from "@/lib/exportTimetableHtml";
 import { downloadHtmlImage } from "@/lib/imageDownload";
 import BottomSheet from "../shared/BottomSheet";
-import { GHOST_BUTTON, SECTION_CHIP } from "@/lib/uiTokens";
+import { GHOST_BUTTON, SECTION_CHIP, MICRO_LABEL, TEXT_CAPTION, SPINNER_ICON, TEXT_BLOCK } from "@/lib/uiTokens";
 import {
   buildExamRows,
   nextExamLabel,
@@ -237,22 +237,14 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
         title={typeFilter !== ALL_TYPES ? `Download ${typeFilter} as PNG` : "Download as PNG"}
         disabled={isDownloading || isDownloadingPdf}
       >
-        {isDownloading ? (
-          <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
-        ) : (
-          <Download className="w-4 h-4" />
-        )}
+        {isDownloading ? <Loader2 className={`${SPINNER_ICON} text-indigo-500`} /> : <Download className="w-4 h-4" />}
       </IconButton>
       <IconButton
         onClick={() => handleDownloadPdf()}
         title={typeFilter !== ALL_TYPES ? `Download ${typeFilter} Schedule (PDF)` : "Download Exam Schedule (PDF)"}
         disabled={isDownloading || isDownloadingPdf}
       >
-        {isDownloadingPdf ? (
-          <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
-        ) : (
-          <Printer className="w-4 h-4" />
-        )}
+        {isDownloadingPdf ? <Loader2 className={`${SPINNER_ICON} text-indigo-500`} /> : <Printer className="w-4 h-4" />}
       </IconButton>
     </>
   );
@@ -359,7 +351,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                           className={GHOST_BUTTON}
                         >
                           <Printer className="w-3.5 h-3.5 text-indigo-400" />
-                          <span className="text-[11px] font-bold">{examType} PDF</span>
+                          <span className="text-xs font-bold">{examType} PDF</span>
                         </button>
                         <button
                           type="button"
@@ -369,7 +361,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                           className={GHOST_BUTTON}
                         >
                           <Download className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-[11px] font-bold">{examType} PNG</span>
+                          <span className="text-xs font-bold">{examType} PNG</span>
                         </button>
                         {isIOS && hasCalendarData ? (
                           <a
@@ -380,7 +372,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                             className={GHOST_BUTTON}
                           >
                             <CalendarPlus className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline text-[11px] font-bold">Add to Calendar</span>
+                            <span className="hidden sm:inline text-xs font-bold">Add to Calendar</span>
                           </a>
                         ) : null}
                       </div>
@@ -405,7 +397,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                             ) : (
                               <ToneDot tone={row.state === "today" ? "amber" : "emerald"} />
                             )}
-                            <div className="min-w-0 flex-1">
+                            <div className={TEXT_BLOCK}>
                               <p
                                 className={`text-sm font-bold truncate font-outfit leading-tight ${
                                   row.state === "past"
@@ -415,7 +407,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                               >
                                 {subj.courseTitle || subj.courseCode}
                               </p>
-                              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-1 truncate">
+                              <p className={`${TEXT_CAPTION} font-medium mt-1 truncate`}>
                                 {subj.courseCode} · {shortDate(row.date)} · {subj.examSession || "TBA"} ·{" "}
                                 {subj.venue === "-" ? "TBA" : subj.venue}
                               </p>
@@ -454,20 +446,16 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                                       { label: "Slot", value: subj.slot === "-" ? "TBA" : subj.slot || "TBA" },
                                     ].map((field) => (
                                       <div key={field.label} className="min-w-0">
-                                        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                                          {field.label}
-                                        </p>
-                                        <p className="text-[12.5px] font-bold text-zinc-800 dark:text-zinc-100 truncate mt-0.5">
+                                        <p className={MICRO_LABEL}>{field.label}</p>
+                                        <p className="text-sm font-bold text-zinc-800 dark:text-zinc-100 truncate mt-0.5">
                                           {field.value}
                                         </p>
                                       </div>
                                     ))}
                                   </div>
                                   <div className="flex items-center justify-between gap-3 min-w-0 pt-1.5">
-                                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 shrink-0">
-                                      Seat
-                                    </p>
-                                    <p className="text-[12.5px] font-bold text-zinc-800 dark:text-zinc-100 truncate">
+                                    <p className={`${MICRO_LABEL} shrink-0`}>Seat</p>
+                                    <p className="text-sm font-bold text-zinc-800 dark:text-zinc-100 truncate">
                                       Loc: {seatLabel(subj) || "TBA"} · No: {subj.seatNo || "TBA"}
                                     </p>
                                   </div>
@@ -504,9 +492,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
         >
           <div className="p-4 space-y-4">
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block mb-2">
-                Exam Series
-              </label>
+              <label className={`${MICRO_LABEL} block mb-2`}>Exam Series</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -517,7 +503,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                       : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-800 dark:text-zinc-200"
                   }`}
                 >
-                  <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">All Series</div>
+                  <div className="text-xs text-zinc-400 font-bold uppercase tracking-wider">All Series</div>
                   <div className="text-sm font-extrabold mt-0.5">All Exams ({allRows.length})</div>
                 </button>
                 {examTypes.map((t) => {
@@ -534,7 +520,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                           : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-800 dark:text-zinc-200"
                       }`}
                     >
-                      <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Series</div>
+                      <div className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Series</div>
                       <div className="text-sm font-extrabold mt-0.5">
                         {t} ({count})
                       </div>
@@ -545,9 +531,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
             </div>
 
             <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800">
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block mb-2">
-                Download Format
-              </label>
+              <label className={`${MICRO_LABEL} block mb-2`}>Download Format</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -578,7 +562,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
               </div>
             </div>
 
-            <p className="text-[11px] text-zinc-400 dark:text-zinc-500 text-center pt-2">
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center pt-2">
               AmazeCC is an independent student initiative. Cross-check your schedule with official VTOP notices.
             </p>
           </div>

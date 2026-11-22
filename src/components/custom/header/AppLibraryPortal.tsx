@@ -51,10 +51,14 @@ const AppLibraryPortal = memo(
     void tabIcons;
 
     const [librarySearchQuery, setLibrarySearchQuery] = useState("");
+    const [showAllModules, setShowAllModules] = useState(false);
+    const [editingPins, setEditingPins] = useState(false);
 
     useEffect(() => {
       if (!open) {
         setLibrarySearchQuery("");
+        setShowAllModules(false);
+        setEditingPins(false);
       }
     }, [open]);
 
@@ -135,30 +139,45 @@ const AppLibraryPortal = memo(
       });
     }, [librarySearchQuery, searchItems]);
 
+    // One neutral well for every destination; colour is reserved for the accent
+    // and for attendance/sync status, never for a category.
+    const NEUTRAL_TINT = "bg-zinc-500/10 text-info";
+
+    const pinnedIds: string[] = settings?.pinnedNavTabs ?? [];
+    const pinnedEntries = pinnedIds
+      .map((pinId) => registry.find((entry) => getPinId(entry) === pinId))
+      .filter((entry): entry is ModuleEntry => Boolean(entry));
+    const pinSlotsLeft = Math.max(0, 4 - pinnedIds.length);
+    const pinLimitText =
+      pinSlotsLeft === 0
+        ? "4 of 4 pins used — unpin one first"
+        : `${pinSlotsLeft} slot${pinSlotsLeft === 1 ? "" : "s"} left`;
+
     const renderItemCard = (item: ModuleEntry, opts?: { cleanPrefix?: string; subtitle?: string; tint?: string }) => {
       const Icon = item.icon || Home;
       const isPanelTrigger = item.target.kind === "panel";
       const pinId = getPinId(item);
-      const pinned = settings?.pinnedNavTabs ?? [];
-      const isPinned = pinId ? pinned.includes(pinId) : false;
-      const atLimit = !isPinned && pinned.length >= 4;
+      const isPinned = pinId ? pinnedIds.includes(pinId) : false;
+      const atLimit = !isPinned && pinnedIds.length >= 4;
       const label = opts?.cleanPrefix ? item.label.replace(opts.cleanPrefix, "") : item.label;
 
       return (
         <div
           key={item.id}
-          className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-50/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
+          className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-50/20 p-3 transition-all hover:shadow-xs active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
         >
           <button
             onClick={() => runEntry(item)}
-            className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus:outline-none"
+            className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            <div className={`rounded-xl p-2 shrink-0 ${opts?.tint ?? "bg-info-surface text-info"}`}>
+            <div className={`rounded-xl p-2 shrink-0 ${opts?.tint ?? NEUTRAL_TINT}`}>
               <Icon className="h-4.5 w-4.5 stroke-[2.2]" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">{label}</span>
-              <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium">
+              <span className="line-clamp-2 text-sm font-bold leading-snug text-zinc-800 dark:text-zinc-200">
+                {label}
+              </span>
+              <span className="text-sm text-zinc-400 dark:text-zinc-500 font-medium">
                 {opts?.subtitle ?? `${item.searchGroup ?? item.group} category`}
               </span>
             </div>
@@ -170,15 +189,15 @@ const AppLibraryPortal = memo(
                 e.stopPropagation();
                 togglePin(pinId);
               }}
-              disabled={atLimit}
-              className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+              className={`relative hit-expand p-1.5 rounded-lg border transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95 ${
                 isPinned
-                  ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
+                  ? "bg-primary border-primary text-primary-foreground"
                   : atLimit
-                    ? "opacity-20 cursor-not-allowed"
-                    : "border-transparent text-zinc-300 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                    ? "border-transparent text-zinc-300 dark:text-zinc-600"
+                    : "border-transparent text-zinc-300 dark:text-zinc-600 hover:text-info hover:border-zinc-200 dark:hover:border-zinc-800"
               }`}
-              title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
+              title={isPinned ? "Unpin from bottom bar" : atLimit ? pinLimitText : "Pin to bottom bar"}
+              aria-label={isPinned ? `Unpin ${label}` : atLimit ? pinLimitText : `Pin ${label} to bottom bar`}
             >
               <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
             </button>
@@ -202,7 +221,7 @@ const AppLibraryPortal = memo(
       >
         {!librarySearchQuery && (
           <div className="flex items-center gap-1.5 px-1 pb-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-550">
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
               Active Sem:
             </span>
             <div className="relative flex items-center">
@@ -234,7 +253,7 @@ const AppLibraryPortal = memo(
             </div>
           ) : (
             <div className="space-y-2">
-              <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+              <h3 className="px-1 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
                 Search Results
               </h3>
               <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
@@ -243,144 +262,187 @@ const AppLibraryPortal = memo(
             </div>
           )
         ) : (
-          primaryGroups.map((group) => {
-            const segments: Array<
-              { type: "items"; items: ModuleEntry[] } | { type: "academics" } | { type: "hostel" }
-            > = [];
-            let bucket: ModuleEntry[] = [];
-            const flush = () => {
-              if (bucket.length) {
-                segments.push({ type: "items", items: bucket });
-                bucket = [];
-              }
-            };
-            for (const item of group.items) {
-              if (item.target.kind === "panel" && item.target.panel === "academics") {
-                flush();
-                segments.push({ type: "academics" });
-              } else if (item.target.kind === "panel" && item.target.panel === "hostel") {
-                flush();
-                segments.push({ type: "hostel" });
-              } else {
-                bucket.push(item);
-              }
-            }
-            flush();
-
-            return (
-              <div key={group.name} className="space-y-3">
-                <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-                  {group.name}
-                </h3>
-                <div className="space-y-3">
-                  {segments.map((seg, idx) => {
-                    if (seg.type === "academics") {
-                      return (
-                        <div key={`${group.name}-academics-${idx}`} className="space-y-2">
-                          <h4 className="px-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                            Academics
-                          </h4>
-                          <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-                            {academicsItems.map((sub) =>
-                              renderItemCard(sub, {
-                                tint: "bg-purple-50 text-purple-650 dark:bg-purple-950/30 dark:text-purple-400",
-                                subtitle: "Academics Tracker",
-                              }),
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-                    if (seg.type === "hostel") {
-                      return (
-                        <div key={`${group.name}-hostel-${idx}`} className="space-y-2">
-                          <h4 className="px-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                            Hostel Hub
-                          </h4>
-                          <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-                            {hostelItems.map((sub) =>
-                              renderItemCard(sub, {
-                                cleanPrefix: "Hostel ",
-                                tint: "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400",
-                                subtitle: "Hostel Hub",
-                              }),
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-                    return (
-                      <div
-                        key={`${group.name}-items-${idx}`}
-                        className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2"
-                      >
-                        {seg.items.map((item) =>
-                          renderItemCard(item, {
-                            tint:
-                              group.name === "Study"
-                                ? "bg-purple-50 text-purple-650 dark:bg-purple-950/30 dark:text-purple-400"
-                                : group.name === "Campus"
-                                  ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
-                                  : group.name === "Tools"
-                                    ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
-                                    : "bg-info-surface text-info",
-                            subtitle:
-                              group.name === "Study"
-                                ? "Academic trackers & schedule"
-                                : group.name === "Campus"
-                                  ? "Campus services"
-                                  : "Social & utilities",
-                          }),
-                        )}
-                      </div>
-                    );
-                  })}
+          <div className="space-y-4">
+            {/* Default landing: only the pinned destinations, then search.
+                Everything else is one explicit tap away behind the disclosure. */}
+            <div className="space-y-2">
+              <h3 className="px-1 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                Pinned
+              </h3>
+              {pinnedEntries.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2 min-[380px]:grid-cols-4">
+                  {pinnedEntries.map((entry) => renderItemCard(entry, { subtitle: "Pinned" }))}
                 </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setEditingPins(true)}
+                  className="w-full rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 px-4 py-5 text-center text-sm font-semibold text-zinc-500 dark:text-zinc-400 hover:border-info hover:text-info cursor-pointer"
+                >
+                  No pins yet — choose up to 4 destinations in Quick pins
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAllModules((value) => !value)}
+              aria-expanded={showAllModules}
+              className="flex w-full items-center justify-between rounded-2xl border border-zinc-200/70 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50 px-4 py-3 text-left text-sm font-bold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+            >
+              <span>{showAllModules ? "Hide all modules" : "Show all modules"}</span>
+              <ChevronRight
+                className={`h-4 w-4 text-zinc-400 transition-transform ${showAllModules ? "rotate-90" : ""}`}
+              />
+            </button>
+
+            {showAllModules && (
+              <div className="space-y-5">
+                {primaryGroups.map((group) => {
+                  const segments: Array<
+                    { type: "items"; items: ModuleEntry[] } | { type: "academics" } | { type: "hostel" }
+                  > = [];
+                  let bucket: ModuleEntry[] = [];
+                  const flush = () => {
+                    if (bucket.length) {
+                      segments.push({ type: "items", items: bucket });
+                      bucket = [];
+                    }
+                  };
+                  for (const item of group.items) {
+                    if (item.target.kind === "panel" && item.target.panel === "academics") {
+                      flush();
+                      segments.push({ type: "academics" });
+                    } else if (item.target.kind === "panel" && item.target.panel === "hostel") {
+                      flush();
+                      segments.push({ type: "hostel" });
+                    } else {
+                      bucket.push(item);
+                    }
+                  }
+                  flush();
+
+                  return (
+                    <div key={group.name} className="space-y-3">
+                      <h3 className="px-1 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                        {group.name}
+                      </h3>
+                      <div className="space-y-3">
+                        {segments.map((seg, idx) => {
+                          if (seg.type === "academics") {
+                            return (
+                              <div key={`${group.name}-academics-${idx}`} className="space-y-2">
+                                <h4 className="px-1 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                                  Academics
+                                </h4>
+                                <div className="grid grid-cols-2 gap-2 min-[380px]:grid-cols-4">
+                                  {academicsItems.map((sub) =>
+                                    renderItemCard(sub, {
+                                      tint: NEUTRAL_TINT,
+                                      subtitle: "Academics Tracker",
+                                    }),
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }
+                          if (seg.type === "hostel") {
+                            return (
+                              <div key={`${group.name}-hostel-${idx}`} className="space-y-2">
+                                <h4 className="px-1 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                                  Hostel Hub
+                                </h4>
+                                <div className="grid grid-cols-2 gap-2 min-[380px]:grid-cols-4">
+                                  {hostelItems.map((sub) =>
+                                    renderItemCard(sub, {
+                                      cleanPrefix: "Hostel ",
+                                      tint: NEUTRAL_TINT,
+                                      subtitle: "Hostel Hub",
+                                    }),
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div
+                              key={`${group.name}-items-${idx}`}
+                              className="grid grid-cols-2 gap-2 min-[380px]:grid-cols-4"
+                            >
+                              {seg.items.map((item) =>
+                                renderItemCard(item, {
+                                  tint: NEUTRAL_TINT,
+                                  subtitle:
+                                    group.name === "Study"
+                                      ? "Academic trackers & schedule"
+                                      : group.name === "Campus"
+                                        ? "Campus services"
+                                        : group.name === "Tools"
+                                          ? "Tools & utilities"
+                                          : "Settings & profile",
+                                }),
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })
+            )}
+          </div>
         )}
 
         <div className="shrink-0 space-y-3 border-t border-zinc-200/50 bg-zinc-50/80 px-5 py-4 dark:border-zinc-800/50 dark:bg-black/60 rounded-t-[20px] mt-4">
-          <div className="flex items-center justify-between">
-            <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 font-outfit">
-              Quick Pin tabs (Max 4)
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="px-0.5 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500 font-outfit">
+              Quick pins
             </h4>
-            <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase">
-              {(settings?.pinnedNavTabs ?? []).length}/4 selected
-            </span>
+            <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400">{pinLimitText}</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {quickPinTabs.map((tab) => {
-              const pinned = settings?.pinnedNavTabs ?? [];
-              const isPinned = pinned.includes(tab.id);
-              const atLimit = !isPinned && pinned.length >= 4;
+            {(editingPins ? quickPinTabs : quickPinTabs.filter((tab) => pinnedIds.includes(tab.id))).map((tab) => {
+              const isPinned = pinnedIds.includes(tab.id);
+              const atLimit = !isPinned && pinnedIds.length >= 4;
               return (
                 <button
                   key={tab.id}
-                  disabled={atLimit}
                   onClick={() => togglePin(tab.id)}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-[10.5px] font-black border transition-all cursor-pointer select-none ${
+                  className={`hit-expand flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-semibold border transition-all cursor-pointer select-none ${
                     isPinned
-                      ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
+                      ? "bg-primary border-primary text-primary-foreground shadow-xs"
                       : atLimit
-                        ? "bg-gray-100 dark:bg-gray-900 border-gray-150 dark:border-gray-800 text-gray-400 dark:text-gray-650 cursor-not-allowed opacity-40"
-                        : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:border-indigo-400"
+                        ? "border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500"
+                        : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:border-info"
                   }`}
+                  title={isPinned ? "Unpin from bottom bar" : atLimit ? pinLimitText : "Pin to bottom bar"}
                 >
                   {isPinned ? "✓ " : "+ "}
                   {tab.label}
                 </button>
               );
             })}
+            {pinnedIds.length === 0 && !editingPins && (
+              <span className="text-sm font-medium text-zinc-400 dark:text-zinc-500">No pins yet</span>
+            )}
           </div>
+          <button
+            type="button"
+            onClick={() => setEditingPins((value) => !value)}
+            aria-expanded={editingPins}
+            className="hit-expand flex items-center gap-1 py-1 text-sm font-bold text-info hover:underline cursor-pointer"
+          >
+            {editingPins ? "Done editing pins" : "Edit pins"}
+            <ChevronRight className={`h-3.5 w-3.5 transition-transform ${editingPins ? "rotate-90" : ""}`} />
+          </button>
         </div>
 
         <div
           className="shrink-0 space-y-2 border-t border-gray-200/50 bg-gray-50/80 px-5 py-4 dark:border-gray-800/50 dark:bg-black/60"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
         >
-          <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-550 font-outfit">
+          <h4 className="px-0.5 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 font-outfit">
             Interface Theme
           </h4>
           <div className="flex w-full gap-1.5 rounded-xl border border-gray-200/20 bg-gray-200/50 p-1 dark:border-gray-800/50 dark:bg-gray-900/50">
@@ -388,16 +450,14 @@ const AppLibraryPortal = memo(
               <button
                 key={t}
                 onClick={(e) => handleThemeChange(t, e)}
-                className={`flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-black capitalize transition-all cursor-pointer ${
+                className={`hit-expand flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-semibold capitalize transition-all cursor-pointer ${
                   theme === t
-                    ? "bg-white text-info shadow-xs dark:bg-black dark:text-amber-300"
-                    : "text-gray-550 hover:text-gray-955 dark:text-gray-400 dark:hover:text-white"
+                    ? "bg-white text-info shadow-xs dark:bg-black dark:text-info"
+                    : "text-gray-500 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white"
                 }`}
               >
-                {t === "light" && <Sun className="h-3.5 w-3.5 text-indigo-600" />}
-                {t === "dark" && (
-                  <Lightbulb className="h-3.5 w-3.5 text-amber-300 fill-amber-300/20 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]" />
-                )}
+                {t === "light" && <Sun className="h-3.5 w-3.5 text-info" />}
+                {t === "dark" && <Lightbulb className="h-3.5 w-3.5 text-info" />}
                 <span>{t}</span>
               </button>
             ))}

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Camera,
+  ChevronDown,
+  ChevronUp,
   ChevronRight,
   FileText,
   ImageUp,
@@ -26,11 +28,12 @@ import {
   SectionHeader,
   ToneBadge,
 } from "@/components/custom/shared/primitives";
-import { LIST_ROW } from "@/lib/uiTokens";
+import { FOCUS_RING, LIST_ROW, TEXT_BLOCK } from "@/lib/uiTokens";
 import { processScan, type ProcessScanPage, type ScanProgress, type ScanWarning } from "@/lib/scanner/pipeline";
 import { createScanStore, isIndexedDbAvailable, type ScanStore } from "@/lib/scanner/store";
 import { loadScannerSettings } from "@/lib/scanner/settings";
 import { decodeToRaster } from "@/lib/scanner/rasterIO";
+import { shutdownScannerWorker } from "@/lib/scanner/scannerWorkerBridge";
 import type { CleanupMode, PaperKind, Quad, Raster, ScanMeta, ScanRecord } from "@/lib/scanner/types";
 import posthog from "posthog-js";
 import ScannerCamera from "./ScannerCamera";
@@ -125,6 +128,8 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
   const [flowError, setFlowError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [showAddSheet, setShowAddSheet] = useState(false);
+  /** One disclosure holds the alternate capture paths in the library state. */
+  const [showMoreWays, setShowMoreWays] = useState(false);
 
   const [detail, setDetail] = useState<{ id: string; record: ScanRecord | null } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -133,6 +138,13 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const systemInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  /* The shared scanner worker belongs to this screen. Terminating it on unmount
+     also settles any in-flight detect through its inline fallback; the next
+     visit lazily creates a fresh one. */
+  useEffect(() => {
+    return () => shutdownScannerWorker();
+  }, []);
 
   /* Store + first list read. `createScanStore` falls back to memory when
      IndexedDB is unavailable (private mode), which the badge surfaces. */
@@ -371,54 +383,73 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
       subtitle="Scan papers into clean PDFs, extract their text, and keep them on this device"
       onBack={handleBack}
       actions={
-        <IconButton title="Scanner settings" onClick={() => setShowSettings(true)}>
+        <IconButton
+          title="Scanner settings"
+          className={`relative hit-expand ${FOCUS_RING}`}
+          onClick={() => setShowSettings(true)}
+        >
           <Settings className="h-4 w-4" />
         </IconButton>
       }
     >
-      {/* ── Primary actions (library state) ── */}
+      {/* ── Primary actions (library state): one shutter, one disclosure ── */}
       {mode.name === "library" && (
-        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-          <Button onClick={enterCamera} icon={<Camera className="h-4 w-4" />}>
-            Scan paper
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => systemInputRef.current?.click()}
-            icon={<Smartphone className="h-4 w-4 text-emerald-500" />}
-          >
-            System Camera
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => fileRef.current?.click()}
-            loading={importing}
-            icon={<ImageUp className="h-4 w-4" />}
-          >
-            Import image
-          </Button>
+        <div className="space-y-2.5">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+            <Button onClick={enterCamera} icon={<Camera className="h-4 w-4" />}>
+              Scan with camera
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setShowMoreWays((v) => !v)}
+              aria-expanded={showMoreWays}
+              icon={showMoreWays ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            >
+              More ways to add
+            </Button>
 
-          {/* Hidden inputs */}
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={handleImportFile}
-            aria-hidden
-            tabIndex={-1}
-          />
-          <input
-            ref={systemInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={handleSystemCapture}
-            aria-hidden
-            tabIndex={-1}
-          />
+            {/* Hidden inputs — all three paths stay reachable */}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleImportFile}
+              aria-hidden
+              tabIndex={-1}
+            />
+            <input
+              ref={systemInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleSystemCapture}
+              aria-hidden
+              tabIndex={-1}
+            />
+          </div>
+
+          {showMoreWays && (
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => systemInputRef.current?.click()}
+                icon={<Smartphone className="h-4 w-4 text-emerald-500" />}
+              >
+                Use device camera
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => fileRef.current?.click()}
+                loading={importing}
+                icon={<ImageUp className="h-4 w-4" />}
+              >
+                Choose from photos
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
@@ -426,12 +457,12 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
       {flowError && mode.name !== "processing" && (
         <div className="flex items-start gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" aria-hidden />
-          <p className="min-w-0 flex-1 text-left text-[11px] font-bold text-red-700 dark:text-red-300">{flowError}</p>
+          <p className={`${TEXT_BLOCK} text-left text-xs font-bold text-red-700 dark:text-red-300`}>{flowError}</p>
           <button
             type="button"
             onClick={() => setFlowError(null)}
             aria-label="Dismiss error"
-            className="shrink-0 rounded-lg p-1 text-red-500 transition-colors duration-150 hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+            className="relative hit-expand shrink-0 rounded-lg p-1 text-red-500 transition-colors duration-150 hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -441,9 +472,9 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
       {warnings.length > 0 && mode.name === "library" && (
         <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-          <div className="min-w-0 flex-1 space-y-1 text-left">
+          <div className={`${TEXT_BLOCK} space-y-1 text-left`}>
             {warnings.map((w, i) => (
-              <p key={i} className="text-[11px] font-bold text-amber-700 dark:text-amber-300">
+              <p key={i} className="text-xs font-bold text-amber-700 dark:text-amber-300">
                 {WARNING_TEXT[w.kind]}
               </p>
             ))}
@@ -452,7 +483,7 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
             type="button"
             onClick={() => setWarnings([])}
             aria-label="Dismiss warnings"
-            className="shrink-0 rounded-lg p-1 text-amber-600 transition-colors duration-150 hover:bg-amber-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+            className="relative hit-expand shrink-0 rounded-lg p-1 text-amber-600 transition-colors duration-150 hover:bg-amber-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -508,7 +539,7 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
           />
           <div className="space-y-1">
             <p className="text-sm font-black text-text-heading font-outfit">{STAGE_LABEL[stage]}</p>
-            <p className="text-[11px] font-medium text-text-secondary dark:text-text-muted">
+            <p className="text-xs font-medium text-text-secondary dark:text-text-muted">
               {progress && progress.total > progress.done
                 ? `${progress.done} of ${progress.total} — ${STAGE_SUB[stage]}`
                 : STAGE_SUB[stage] || "Working…"}
@@ -569,7 +600,7 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
           {loading ? (
             <ListSkeleton rows={3} leading="dot" trailing titleWidth="w-1/3" subtitleWidth="w-1/4" />
           ) : listError ? (
-            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-left text-[11px] font-bold text-red-700 dark:text-red-300">
+            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-left text-xs font-bold text-red-700 dark:text-red-300">
               {listError}
             </div>
           ) : metas && metas.length === 0 ? (
@@ -643,7 +674,7 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
         <BottomSheet overlayId="scanner-add-page-sheet" onClose={() => setShowAddSheet(false)}>
           <div className="space-y-4 p-2 text-left">
             <div>
-              <h3 className="text-base font-black text-text-heading font-outfit">Add Document Page</h3>
+              <h3 className="text-balance text-base font-black text-text-heading font-outfit">Add Document Page</h3>
               <p className="text-xs text-text-secondary dark:text-text-muted mt-0.5">
                 Choose how you would like to capture or import the next page
               </p>
@@ -661,8 +692,8 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform">
                   <Camera className="h-5 w-5" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-text-primary">Live In-App Scanner</p>
+                <div className={TEXT_BLOCK}>
+                  <p className="text-sm font-bold text-text-primary">Scan with camera</p>
                   <p className="text-xs text-text-secondary dark:text-text-muted">
                     Interactive full-screen viewfinder with A4 guide &amp; auto-edge detect
                   </p>
@@ -673,8 +704,8 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform">
                   <Smartphone className="h-5 w-5" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-text-primary">System Camera / Scanner</p>
+                <div className={TEXT_BLOCK}>
+                  <p className="text-sm font-bold text-text-primary">Use device camera</p>
                   <p className="text-xs text-text-secondary dark:text-text-muted">
                     Invoke device native camera with hardware lens &amp; HDR
                   </p>
@@ -692,8 +723,8 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 group-hover:scale-105 transition-transform">
                   <ImageUp className="h-5 w-5" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-text-primary">Photo Gallery / Files</p>
+                <div className={TEXT_BLOCK}>
+                  <p className="text-sm font-bold text-text-primary">Choose from photos</p>
                   <p className="text-xs text-text-secondary dark:text-text-muted">
                     Pick one or multiple existing photos from this device
                   </p>

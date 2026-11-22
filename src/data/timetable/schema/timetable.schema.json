@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://amazecc.app/schemas/timetable-v1.json",
+  "title": "AmazeCC unified timetable vocabulary (v1)",
+  "description": "One physical period can be named by several slot tokens from different programmes. Slots are keyed by (day, token) and always resolve to a periodId; the period, not the token, is the identity used for clash detection and grid layout.",
+  "type": "object",
+  "required": ["schemaVersion", "vocabularyVersion", "campusId", "timezone", "days", "programmes", "periods", "slots"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "vocabularyVersion": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
+    "campusId": { "type": "string", "minLength": 1 },
+    "timezone": { "type": "string", "minLength": 1 },
+    "effectiveFrom": { "type": "string" },
+    "days": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "order"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Z]{3}$" },
+          "label": { "type": "string" },
+          "order": { "type": "integer", "minimum": 1 },
+          "follows": { "type": "string", "description": "For Saturday: which day's timetable this day follows." }
+        }
+      }
+    },
+    "programmes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "label": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "periods": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "lunch", "origin", "slots"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[TLX]\\d{2}$" },
+          "kind": { "enum": ["theory", "lab", "break"] },
+          "startMin": { "type": ["integer", "null"], "minimum": 0, "maximum": 1439 },
+          "endMin": { "type": ["integer", "null"], "minimum": 0, "maximum": 1439 },
+          "lunch": { "type": "boolean" },
+          "origin": { "enum": ["campus", "config"] },
+          "dayTimeOverrides": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["startMin", "endMin"],
+              "additionalProperties": false,
+              "properties": {
+                "startMin": { "type": "integer" },
+                "endMin": { "type": "integer" }
+              }
+            }
+          },
+          "slots": {
+            "type": "object",
+            "description": "Day id -> the tokens (from every programme) that name this period on that day.",
+            "additionalProperties": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "slots": {
+      "type": "object",
+      "description": "Key is `${day}:${token}`. Two programmes may use the same token on the same day for different periods; key them distinctly (S8 / S8B).",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["key", "token", "day", "periodId", "kind", "programme", "time", "startMin", "endMin", "aliases", "flags", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "key": { "type": "string" },
+          "token": { "type": "string" },
+          "day": { "type": "string", "pattern": "^[A-Z]{3}$" },
+          "periodId": { "type": "string" },
+          "kind": { "enum": ["theory", "lab"] },
+          "programme": { "type": "string" },
+          "time": { "type": "string", "description": "Legacy config-dialect string, kept only for compatibility projections." },
+          "startMin": { "type": "integer" },
+          "endMin": { "type": "integer" },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["token", "system"],
+              "additionalProperties": false,
+              "properties": {
+                "token": { "type": "string" },
+                "system": { "type": "string" }
+              }
+            }
+          },
+          "flags": { "type": "array", "items": { "type": "string" } },
+          "status": { "enum": ["active", "retired"] }
+        }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "description": "Counts captured when this canonical file was bootstrapped; the generator refuses to silently lose or gain slots.",
+      "additionalProperties": false,
+      "properties": {
+        "slotCount": { "type": "integer" },
+        "periodCount": { "type": "integer" },
+        "tokenCount": { "type": "integer" }
+      }
+    },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}

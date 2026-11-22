@@ -17,6 +17,7 @@
  *      arrive in the UI without a second manual sync.
  */
 
+import { SPINNER_ICON, TEXT_CAPTION } from "@/lib/uiTokens";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Link2, Loader2, ShieldCheck, UserCheck, UserX } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";
@@ -205,7 +206,7 @@ export default function AddPeerSheet({
         <div className="space-y-2">
           <label
             htmlFor="social-peer-handle"
-            className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit block"
+            className="text-xs sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit block"
           >
             Their handle
           </label>
@@ -228,7 +229,7 @@ export default function AddPeerSheet({
             spellCheck={false}
             className={`${FIELD_INPUT} font-mono tracking-widest uppercase`}
           />
-          <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium leading-relaxed">
+          <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium leading-relaxed">
             Their handle is on their Social → Share screen. It identifies the person, not their schedule.
           </p>
         </div>
@@ -245,7 +246,7 @@ export default function AddPeerSheet({
 
         {stage === "checking" && (
           <p className="flex items-center gap-2 text-xs font-bold text-zinc-500 dark:text-zinc-400">
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className={SPINNER_ICON} />
             Checking handle…
           </p>
         )}
@@ -307,10 +308,10 @@ export default function AddPeerSheet({
 
         {/* The mutuality disclosure. This is the one irreversible part. */}
         <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/70 dark:border-zinc-800 space-y-1.5">
-          <p className="text-[11px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+          <p className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
             Before you pair
           </p>
-          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
+          <p className={`${TEXT_CAPTION} font-medium leading-relaxed`}>
             Pairing is <strong className="text-zinc-700 dark:text-zinc-200">mutual and immediate</strong>. They are not
             asked to accept, and they will be able to read your timetable for this term straight away. Either of you can
             end it at any time from Pairs.
@@ -318,11 +319,11 @@ export default function AddPeerSheet({
         </div>
 
         <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/70 dark:border-zinc-800 space-y-1.5">
-          <p className="flex items-center gap-1.5 text-[11px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+          <p className="flex items-center gap-1.5 text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
             <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
             Full timetable detail
           </p>
-          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
+          <p className={`${TEXT_CAPTION} font-medium leading-relaxed`}>
             Timetable sharing is always full detail: course, venue and title are visible to everyone you pair with. That
             applies to both of you, and either side can end the pairing at any time.
           </p>
@@ -342,7 +343,7 @@ export default function AddPeerSheet({
             disabled={busy || stage !== "ready" || isSelf}
             className={`flex-1 py-3 rounded-2xl font-bold text-xs transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 ${TONE_BADGE.indigo} bg-indigo-600 text-white border border-indigo-600 hover:bg-indigo-700`}
           >
-            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+            {busy ? <Loader2 className={SPINNER_ICON} /> : <Link2 className="w-4 h-4" />}
             {busy ? "Pairing…" : "Pair"}
           </button>
         </div>

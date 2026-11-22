@@ -1,15 +1,8 @@
 "use client";
 import { Github, Linkedin, Users } from "lucide-react";
 import teamData from "../../../data/team.json";
-import {
-  IconLink,
-  ListRowText,
-  ListShell,
-  PageShell,
-  SectionHeader,
-  StatTile,
-} from "../shared/primitives";
-import { LIST_ROW, TONE_ICON_TILE } from "@/lib/uiTokens";
+import { IconLink, ListRowText, ListShell, PageShell, SectionHeader, StatTile } from "../shared/primitives";
+import { LIST_ROW, STAT_GRID, TONE_ICON_TILE } from "@/lib/uiTokens";
 
 /**
  * The team behind AmazeCC.
@@ -25,10 +18,7 @@ export default function TeamModal({ handleClose }: { handleClose: () => void }) 
     .filter((c) => c.members && c.members.length > 0)
     .sort((a, b) => a.order - b.order);
 
-  const totalMembers = sortedCommittees.reduce(
-    (n, c) => n + (c.members?.length || 0),
-    0
-  );
+  const totalMembers = sortedCommittees.reduce((n, c) => n + (c.members?.length || 0), 0);
 
   return (
     <PageShell
@@ -38,7 +28,7 @@ export default function TeamModal({ handleClose }: { handleClose: () => void }) 
       onBack={handleClose}
     >
       <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div className={STAT_GRID}>
           <StatTile
             label="Committees"
             value={sortedCommittees.length}
@@ -56,22 +46,16 @@ export default function TeamModal({ handleClose }: { handleClose: () => void }) 
         </div>
 
         {sortedCommittees.map((committee) => {
-          const sortedMembers = [...(committee.members || [])].sort(
-            (a, b) => a.order - b.order
-          );
+          const sortedMembers = [...(committee.members || [])].sort((a, b) => a.order - b.order);
 
           return (
             <div key={committee.id} className="space-y-3">
               <div className="px-1">
-                <SectionHeader
-                  icon={Users}
-                  title={committee.name}
-                  count={sortedMembers.length}
-                />
+                <SectionHeader icon={Users} title={committee.name} count={sortedMembers.length} />
                 {/* Committee descriptions are one line of prose, not a heading, so
                     they sit under the header rather than in it. */}
                 {committee.description && (
-                  <p className="mt-1.5 text-[11px] leading-relaxed text-text-secondary dark:text-text-muted font-medium">
+                  <p className="mt-1.5 text-xs leading-relaxed text-text-secondary dark:text-text-muted font-medium">
                     {committee.description}
                   </p>
                 )}

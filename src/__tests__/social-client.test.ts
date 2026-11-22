@@ -21,6 +21,20 @@ const fetchMock = vi.fn();
 vi.mock("@/lib/sync-engine/request-layer", () => ({
   apiRequest: (path: string, opts: { method?: string; body?: unknown }) =>
     fetchMock(path, { method: opts?.method, body: opts?.body }),
+  // CredentialManager registers itself with the request layer at construction.
+  setAuthProvider: vi.fn(),
+}));
+
+// The response guard is what is under test here, not the auth prerequisites.
+// Social routes need an Amaze ID token and VTOP creds merged into the body, so
+// stub both rather than depending on whatever happens to be in localStorage.
+vi.mock("@/lib/oauth2", () => ({
+  getValidAccessToken: () => Promise.resolve("test-access-token"),
+}));
+vi.mock("@/lib/sync-engine/credential-manager", () => ({
+  credentialManager: {
+    ensureVtopSession: () => Promise.resolve({ cookies: ["x"], authorizedID: "A", csrf: "c" }),
+  },
 }));
 
 import { SocialApiError, claimPair, lookupPerson, readPeerTimetable } from "../lib/social/client";
@@ -126,7 +140,7 @@ describe("genuine successes still resolve", () => {
     await claimPair("AMZ-7K2P-9RTW");
     expect(fetchMock).toHaveBeenCalledWith("social/pair/claim", {
       method: "POST",
-      body: { handle: "AMZ-7K2P-9RTW", visibility: "full" },
+      body: expect.objectContaining({ handle: "AMZ-7K2P-9RTW", visibility: "full" }),
     });
   });
 

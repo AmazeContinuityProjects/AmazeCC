@@ -8,7 +8,7 @@ import { Sun, Moon } from "lucide-react";
 export function animateThemeCircularExpansion(
   event: React.MouseEvent<HTMLElement> | MouseEvent | null,
   newTheme: string,
-  setTheme: (val: string) => void
+  setTheme: (val: string) => void,
 ) {
   if (typeof document === "undefined") {
     setTheme(newTheme);
@@ -25,10 +25,7 @@ export function animateThemeCircularExpansion(
   const x = event && "clientX" in event && event.clientX > 0 ? event.clientX : window.innerWidth / 2;
   const y = event && "clientY" in event && event.clientY > 0 ? event.clientY : window.innerHeight / 2;
 
-  const endRadius = Math.hypot(
-    Math.max(x, window.innerWidth - x),
-    Math.max(y, window.innerHeight - y)
-  );
+  const endRadius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
 
   const transition = (document as any).startViewTransition(() => {
     // Synchronously mutate DOM root class before screenshot capture to prevent 1ms flash
@@ -42,15 +39,12 @@ export function animateThemeCircularExpansion(
 
   transition.ready.then(() => {
     document.documentElement.animate(
-      [
-        { clipPath: `circle(0px at ${x}px ${y}px)` },
-        { clipPath: `circle(${endRadius}px at ${x}px ${y}px)` },
-      ],
+      [{ clipPath: `circle(0px at ${x}px ${y}px)` }, { clipPath: `circle(${endRadius}px at ${x}px ${y}px)` }],
       {
         duration: 420,
         easing: "cubic-bezier(0.22, 1, 0.36, 1)",
         pseudoElement: "::view-transition-new(root)",
-      }
+      },
     );
   });
 }
@@ -83,9 +77,9 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
       whileHover={{ scale: 1.05 }}
       onClick={handleToggle}
       disabled={!mounted}
-      className={`relative inline-flex items-center justify-center p-2 rounded-2xl border transition-all cursor-pointer select-none group focus:outline-none ${
-        isDark 
-          ? "bg-zinc-900/90 border-zinc-800 text-amber-300 shadow-md hover:bg-zinc-800 hover:border-amber-400/40" 
+      className={`relative hit-expand inline-flex items-center justify-center p-2 rounded-2xl border transition-all cursor-pointer select-none group focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+        isDark
+          ? "bg-zinc-900/90 border-zinc-800 text-amber-300 shadow-md hover:bg-zinc-800 hover:border-amber-400/40"
           : "bg-white border-zinc-200 text-indigo-600 shadow-sm hover:bg-zinc-50 hover:border-indigo-300"
       } ${className}`}
       title={`Switch to ${isDark ? "Light" : "Dark"} mode`}
@@ -106,9 +100,7 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
         </motion.div>
 
         {showLabel && (
-          <span className="text-xs font-bold capitalize tracking-wide pr-1">
-            {isDark ? "Light Mode" : "Dark Mode"}
-          </span>
+          <span className="text-xs font-bold capitalize tracking-wide pr-1">{isDark ? "Light Mode" : "Dark Mode"}</span>
         )}
       </div>
     </motion.button>

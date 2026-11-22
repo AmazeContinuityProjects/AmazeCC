@@ -14,14 +14,14 @@ export default function MobilePreflightCard({}: MobilePreflightCardProps) {
       {/* Top category label */}
       <div className="space-y-1.5 text-center sm:text-left">
         <div className="mb-1">
-          <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
+          <span className="text-[12px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
             Mobile First · Timetable Studio
           </span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-outfit">
+        <h1 className="text-balance text-2xl sm:text-3xl font-black text-white tracking-tight font-outfit">
           Mobile-First Timetable Builder
         </h1>
-        <p className="text-xs text-zinc-400 leading-relaxed font-medium">
+        <p className="text-pretty text-xs text-zinc-400 leading-relaxed font-medium">
           Step-by-step mobile timetable designer with live clash checking, faculty ratings, and fast multi-timetable
           switching.
         </p>
@@ -35,7 +35,7 @@ export default function MobilePreflightCard({}: MobilePreflightCardProps) {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-bold text-zinc-200">Clash-Free Timetable Generator</p>
-            <p className="text-[11px] text-zinc-400 truncate">Automatic ranking with preferred slots and timings</p>
+            <p className="text-[12px] text-zinc-400 truncate">Automatic ranking with preferred slots and timings</p>
           </div>
         </div>
 
@@ -45,7 +45,7 @@ export default function MobilePreflightCard({}: MobilePreflightCardProps) {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-bold text-zinc-200">Faculty Ratings & Swapping</p>
-            <p className="text-[11px] text-zinc-400 truncate">Compare faculty scores and swap slots seamlessly</p>
+            <p className="text-[12px] text-zinc-400 truncate">Compare faculty scores and swap slots seamlessly</p>
           </div>
         </div>
 
@@ -55,7 +55,7 @@ export default function MobilePreflightCard({}: MobilePreflightCardProps) {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-bold text-zinc-200">Multi-Timetable Browser</p>
-            <p className="text-[11px] text-zinc-400 truncate">Switch, create, and manage schedules side-by-side</p>
+            <p className="text-[12px] text-zinc-400 truncate">Switch, create, and manage schedules side-by-side</p>
           </div>
         </div>
       </div>

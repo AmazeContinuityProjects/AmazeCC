@@ -40,11 +40,13 @@ import { getAssetPath } from "@/lib/utils";
 import { buildExamRows, classifyExamState } from "@/lib/examSchedule";
 import { dateKey } from "@/lib/calendarDay";
 import { isLabFatMarked, labFatPapersByDate, labSlotTokens, type LabFatPaper } from "@/lib/labFatWeek";
+import { TEXT_CAPTION, TEXT_BLOCK } from "@/lib/uiTokens";
 import { cn } from "@amazecontinuityprojects/amazeui";
 import TimetableGrid from "../attendance/TimetableGrid";
 import DesktopCourseDetail from "../attendance/DesktopCourseDetail";
 import BottomSheet from "../shared/BottomSheet";
 import { useSyncTrigger } from "../shared/useSyncTrigger";
+import { useCarouselAutoplayPolicy } from "../tasks/useCarouselAutoplayPolicy";
 import {
   EmptyPanel,
   IconButton,
@@ -152,19 +154,19 @@ function LabFatExamSlot({
         aria-label={`Lab FAT exam slot ${paper.slot} — ${paper.courseTitle || paper.courseCode}`}
         className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left cursor-pointer active:scale-[0.99] transition-transform"
       >
-        <div className="min-w-0 flex-1">
+        <div className={TEXT_BLOCK}>
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-500 text-white shadow-xs shrink-0">
+            <span className="text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-500 text-white shadow-xs shrink-0">
               Lab FAT
             </span>
-            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/40 shrink-0">
+            <span className="text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/40 shrink-0">
               {paper.slot}
             </span>
             <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit truncate">
               {paper.courseTitle || paper.courseCode}
             </h3>
           </div>
-          <div className="mt-1 flex items-center gap-3 text-[11px] text-zinc-600 dark:text-zinc-400 font-semibold min-w-0">
+          <div className="mt-1 flex items-center gap-3 text-xs text-zinc-600 dark:text-zinc-400 font-semibold min-w-0">
             <span className="inline-flex items-center gap-1 shrink-0">
               <Clock className="w-3.5 h-3.5 text-red-500" />
               {paper.examTime || time || "Time TBA"}
@@ -189,7 +191,7 @@ function LabFatExamSlot({
             transition={{ duration: 0.22, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-3.5 pt-2.5 border-t border-red-200/60 dark:border-red-900/40 grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
+            <div className="px-4 pb-3.5 pt-2.5 border-t border-red-200/60 dark:border-red-900/40 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
               <p className="text-zinc-500 dark:text-zinc-400">
                 Session{" "}
                 <span className="block font-bold text-zinc-800 dark:text-zinc-200">{paper.examSession || "—"}</span>
@@ -237,8 +239,8 @@ function LiveClassBadge({ time, detailed = false }: { time: string; detailed?: b
     <span
       className={
         detailed
-          ? "inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.8 rounded-xl bg-emerald-500 text-white shadow-xs"
-          : "inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0 shadow-2xs"
+          ? "inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider px-2.5 py-0.8 rounded-xl bg-emerald-500 text-white shadow-xs"
+          : "inline-flex items-center gap-1 text-xs font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0 shadow-2xs"
       }
     >
       <span className={detailed ? "w-1.5 h-1.5 rounded-full bg-white" : "w-1 h-1 rounded-full bg-white"} />
@@ -296,7 +298,8 @@ function LiveClassProgress({
 }
 
 const HomeInsightCarousel = React.memo(function HomeInsightCarousel({ slides }: { slides: readonly InsightSlide[] }) {
-  const carousel = useCarousel(slides.length);
+  const autoplayMs = useCarouselAutoplayPolicy();
+  const carousel = useCarousel(slides.length, autoplayMs);
   return <InsightCarousel slides={slides} carousel={carousel} ariaLabel="Rotating insights" className="min-w-0" />;
 });
 
@@ -1480,7 +1483,7 @@ export default function SimplifiedMobileHome({
                         if (weekOffset !== 0) goToWeek(0, 0 < weekOffset ? 1 : -1);
                         setSelectedDay(todayDayCode);
                       }}
-                      className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/40 ml-1 cursor-pointer"
+                      className="text-xs font-extrabold uppercase px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/40 ml-1 cursor-pointer"
                       title="Back to today"
                     >
                       Today
@@ -1595,10 +1598,10 @@ export default function SimplifiedMobileHome({
                               : "hover:bg-zinc-100 dark:hover:bg-zinc-800/60",
                         )}
                       >
-                        <span className="text-[10px] font-bold uppercase tracking-wider leading-none text-zinc-400 dark:text-zinc-500">
+                        <span className="text-xs font-bold uppercase tracking-wider leading-none text-zinc-400 dark:text-zinc-500">
                           {item.dayCode}
                         </span>
-                        <span className={cn("text-[15px] font-black font-outfit leading-none", ink)}>
+                        <span className={cn("text-base font-black font-outfit leading-none", ink)}>
                           {item.dayNumber}
                         </span>
                       </button>
@@ -1614,7 +1617,7 @@ export default function SimplifiedMobileHome({
                 <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
                   {getSelectedDayFormattedDate()}
                 </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                <p className={`${TEXT_CAPTION} font-medium`}>
                   {isLabFatDay ? (
                     <span className="inline-flex items-center gap-1.5">
                       <span className="font-extrabold text-red-600 dark:text-red-400">
@@ -1654,7 +1657,7 @@ export default function SimplifiedMobileHome({
                   <Sparkles className="w-4 h-4 text-indigo-500 shrink-0" />
                   <span>{selectedDayMeta.orderInfo} (Applied)</span>
                 </div>
-                <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+                <span className="text-xs uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
                   Calendar Auto
                 </span>
               </div>
@@ -1699,7 +1702,7 @@ export default function SimplifiedMobileHome({
                           <span>{ex.examTime || "Morning Session"}</span>
                         </div>
                         {ex.reportingTime && (
-                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pl-6">
+                          <p className={`${TEXT_CAPTION} pl-6`}>
                             Reporting:{" "}
                             <span className="font-bold text-zinc-800 dark:text-zinc-200">{ex.reportingTime}</span>
                           </p>
@@ -1717,7 +1720,7 @@ export default function SimplifiedMobileHome({
                           </span>
                         </div>
                         {(ex.seatNo || ex.seatLocation) && (
-                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pl-6">
+                          <p className={`${TEXT_CAPTION} pl-6`}>
                             Seat:{" "}
                             <strong className="text-zinc-900 dark:text-white font-bold">No. {ex.seatNo || "—"}</strong>{" "}
                             ({ex.seatLocation || "Row"})
@@ -1728,7 +1731,7 @@ export default function SimplifiedMobileHome({
 
                     {/* Footer Action */}
                     <div className="pt-2 flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-red-600 dark:text-red-400">
+                      <span className="text-xs font-bold text-red-600 dark:text-red-400">
                         No regular lectures on exam day
                       </span>
                       <button
@@ -1775,7 +1778,7 @@ export default function SimplifiedMobileHome({
                   <h3 className="font-black text-sm text-zinc-900 dark:text-white font-outfit">
                     No classes on {selectedDay}!
                   </h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-xs mx-auto">
+                  <p className={`${TEXT_CAPTION} mt-1 max-w-xs mx-auto`}>
                     No lectures or lab sessions are scheduled for this day. Enjoy your free time or check free
                     classrooms.
                   </p>
@@ -1882,10 +1885,10 @@ export default function SimplifiedMobileHome({
 
                         <div className="relative py-3 px-4 z-10 flex items-center justify-between gap-3">
                           {/* Left: 2 Lines of info */}
-                          <div className="min-w-0 flex-1">
+                          <div className={TEXT_BLOCK}>
                             {/* Line 1: Slot + Title + Status */}
                             <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-100 dark:border-indigo-900/30">
+                              <span className="text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-100 dark:border-indigo-900/30">
                                 {cls.slotName}
                               </span>
                               <h3
@@ -1896,14 +1899,14 @@ export default function SimplifiedMobileHome({
                               </h3>
                               {isLive && <LiveClassBadge time={cls.time} />}
                               {isCompleted && (
-                                <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/60 px-1.5 py-0.2 rounded shrink-0">
+                                <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/60 px-1.5 py-0.2 rounded shrink-0">
                                   Done
                                 </span>
                               )}
                             </div>
 
                             {/* Line 2: Time • Venue • Bunkable count */}
-                            <div className="flex items-center gap-2 mt-1.5 text-[11px] text-zinc-500 dark:text-zinc-400 flex-wrap">
+                            <div className={`flex items-center gap-2 mt-1.5 ${TEXT_CAPTION} flex-wrap`}>
                               <span className="flex items-center gap-1 font-semibold text-zinc-700 dark:text-zinc-300 shrink-0">
                                 <Clock className="w-3 h-3 text-indigo-500" />
                                 {cls.time}
@@ -1928,7 +1931,7 @@ export default function SimplifiedMobileHome({
                                   >
                                     <span className="truncate">{cls.faculty}</span>
                                     {getFacultyErp(cls) && (
-                                      <span className="text-[9px] font-mono px-1 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                                      <span className="text-xs font-mono px-1 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
                                         #{getFacultyErp(cls)}
                                       </span>
                                     )}
@@ -1937,7 +1940,7 @@ export default function SimplifiedMobileHome({
                               )}
                               <span className="text-zinc-300 dark:text-zinc-700">•</span>
                               <span
-                                className={`font-bold inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md text-[10.5px] ${
+                                className={`font-bold inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md text-xs ${
                                   bunkStatus === "safe"
                                     ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
                                     : bunkStatus === "warning"
@@ -1985,7 +1988,7 @@ export default function SimplifiedMobileHome({
                             >
                               {currentPct.toFixed(0)}%
                             </span>
-                            <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 mt-0.5">
+                            <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 mt-0.5">
                               {attended}/{total}
                             </span>
                           </div>
@@ -2027,13 +2030,13 @@ export default function SimplifiedMobileHome({
                             {isLive && <LiveClassBadge time={cls.time} detailed />}
 
                             {isUpcoming && selectedDay === todayDayCode && weekOffset === 0 && (
-                              <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-lg">
+                              <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-lg">
                                 {minutesUntilStart <= 60 ? `In ${minutesUntilStart} mins` : `Upcoming`}
                               </span>
                             )}
 
                             {isCompleted && (
-                              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                              <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3 text-zinc-400" /> Done
                               </span>
                             )}
@@ -2041,7 +2044,7 @@ export default function SimplifiedMobileHome({
 
                           {/* Course Attendance % Badge */}
                           <div className="flex items-center gap-1.5 shrink-0">
-                            <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500">
+                            <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500">
                               {attended}/{total}
                             </span>
                             <span
@@ -2080,7 +2083,7 @@ export default function SimplifiedMobileHome({
                                 {cls.faculty || "Faculty Assigned"}
                               </span>
                               {getFacultyErp(cls) && (
-                                <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50">
+                                <span className="text-xs font-mono px-1 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50">
                                   #{getFacultyErp(cls)}
                                 </span>
                               )}
@@ -2157,7 +2160,7 @@ export default function SimplifiedMobileHome({
                     <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
                       Today&apos;s Tasks &amp; Schedule
                     </h3>
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                    <span className="text-xs font-extrabold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
                       {todayTasks.length}
                     </span>
                   </div>
@@ -2183,19 +2186,17 @@ export default function SimplifiedMobileHome({
                       })}
                       className="p-3.5 flex items-center justify-between gap-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors"
                     >
-                      <div className="min-w-0 flex-1">
+                      <div className={TEXT_BLOCK}>
                         <div className="flex items-center gap-1.5 mb-1">
                           <span
-                            className={`text-[9.5px] font-extrabold uppercase px-1.5 py-0.2 rounded border ${
+                            className={`text-xs font-extrabold uppercase px-1.5 py-0.2 rounded border ${
                               (KIND_CONFIG[t.kind] || KIND_CONFIG.homework).badgeClass
                             }`}
                           >
                             {(KIND_CONFIG[t.kind] || KIND_CONFIG.homework).label}
                           </span>
                           {t.courseCode && (
-                            <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
-                              {t.courseCode}
-                            </span>
+                            <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">{t.courseCode}</span>
                           )}
                         </div>
                         <h4 className="text-xs font-bold text-zinc-900 dark:text-white truncate font-outfit">
@@ -2319,9 +2320,7 @@ export default function SimplifiedMobileHome({
                     <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit truncate">
                       Full Weekly Timetable
                     </h2>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
-                      Slot matrix, timeslots & classroom venues
-                    </p>
+                    <p className={`${TEXT_CAPTION} truncate`}>Slot matrix, timeslots & classroom venues</p>
                   </div>
                 </div>
                 {/*

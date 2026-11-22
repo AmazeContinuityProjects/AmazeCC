@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { initials } from "../components/custom/social/rows";
+import { PERIODS_BY_DAY, tokensForPeriod } from "../lib/generated/timetable";
 import { projectColumns } from "../components/custom/timetable/periodSkeleton";
 import { relativePublished } from "../lib/social/usePeerTimetables";
 import { DAYS, slotMap, totalSlotsAcrossDay } from "../lib/social/schedule";
@@ -23,23 +24,27 @@ describe("the 7x12 projection is complete and lossless", () => {
     }
   });
 
-  it("covers every slot in config.json exactly once, on every day", () => {
-    // This is the invariant from docs/social-tt/09-schedule-math.md §3. A gap
-    // means a slot the grid cannot render; a duplicate means a slot counted
-    // twice in the free/busy arithmetic.
+  it("represents every canonical period exactly once, on every day", () => {
+    // The old invariant was "every config token appears in a column". With the
+    // unified schema, programme/law tokens that share a physical period are
+    // intentionally consolidated into one column, so the invariant is now
+    // period coverage: each physical period is represented by one of its
+    // tokens, with no duplicate column slots.
     for (const day of DAYS) {
       const seen: string[] = [];
       for (const col of columns[day]) {
         if (col.theory) seen.push(col.theory.slotId);
         if (col.lab) seen.push(col.lab.slotId);
       }
-      const expected = Object.keys(slotMap[day]).sort();
-      expect(seen.slice().sort()).toEqual(expected);
       expect(seen).toHaveLength(new Set(seen).size);
+      for (const slotId of seen) expect(slotMap[day][slotId]).toBeTruthy();
+      for (const periodId of PERIODS_BY_DAY[day] ?? []) {
+        expect(tokensForPeriod(day, periodId).some((token) => seen.includes(token))).toBe(true);
+      }
     }
   });
 
-  it("covers all 164 slots in total", () => {
+  it("covers all 167 consolidated grid slots in total", () => {
     let total = 0;
     for (const day of DAYS) {
       for (const col of columns[day]) {
@@ -47,7 +52,7 @@ describe("the 7x12 projection is complete and lossless", () => {
         if (col.lab) total++;
       }
     }
-    expect(total).toBe(164);
+    expect(total).toBe(167);
   });
 
   it("puts every slot in the column whose time matches, not merely any column", () => {
@@ -96,7 +101,7 @@ describe("initials", () => {
   it("takes at most two letters, uppercased", () => {
     expect(initials("Neha Patel")).toBe("NP");
     expect(initials("Aarav Sharma")).toBe("AS");
-    expect(initials("Aarav Kumar Sharma")).toBe("AK");
+    expect(initials("Aarav Kumar Sharma")).toBe("AS");
     expect(initials("a")).toBe("A");
   });
 

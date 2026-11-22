@@ -139,14 +139,14 @@ export default function ScannerSettingsSheet({ onClose }: ScannerSettingsSheetPr
 
         <div className="flex items-start gap-2.5 rounded-2xl border border-border-muted dark:border-border bg-surface-secondary dark:bg-surface/60 px-4 py-3">
           <UploadCloud className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" aria-hidden />
-          <p className="text-left text-[11px] font-medium text-text-secondary dark:text-text-muted">
+          <p className="text-left text-xs font-medium text-text-secondary dark:text-text-muted">
             <span className="font-extrabold text-text-heading">Local-first.</span> Every scan is written to this
             device&apos;s storage before anything touches the network, and an upload failure never loses it.
           </p>
         </div>
 
         {cloudKeyNeeded && !settings.ocrApiKey && (
-          <p className="flex items-center gap-2 px-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+          <p className="flex items-center gap-2 px-1 text-xs font-bold text-amber-600 dark:text-amber-400">
             <KeyRound className="h-3.5 w-3.5 shrink-0" aria-hidden />
             No API key set — cloud OCR will report itself unavailable until one is.
           </p>

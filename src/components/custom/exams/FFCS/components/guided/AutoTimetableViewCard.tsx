@@ -3,7 +3,7 @@
 import type React from "react";
 import type { TimetableState } from "@/lib/ffcsTypes";
 import type { GuidedPhase } from "@/components/custom/exams/FFCS/components/FFCSGuidedSelector";
-import { getTimetableSchema } from "@/lib/campusSchema";
+import { FFCS_SCHEMA } from "@/lib/ffcsTimetableData";
 import { timetableMetrics } from "@/lib/timetableMetrics";
 import { DAYS } from "@/lib/ffcsConstants";
 import { ensureLunchPeriod } from "@/lib/slots";
@@ -34,7 +34,7 @@ export default function AutoTimetableViewCard({
   const currentVariant = autoResultsList[selectedVariantIndex];
   if (!currentVariant) return null;
 
-  const schema = getTimetableSchema();
+  const schema = FFCS_SCHEMA;
   const metrics = timetableMetrics(currentVariant.courses, schema);
   const totalCredits = currentVariant.courses.reduce((sum, c) => sum + (Number(c.credits) || 0), 0);
   const daysList = DAYS || [
@@ -65,10 +65,10 @@ export default function AutoTimetableViewCard({
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="text-left">
-            <span className="font-extrabold text-xs sm:text-sm text-white font-outfit block">
+            <span className="font-extrabold text-xs sm:text-sm text-white font-outfit block tabular-nums">
               Timetable {selectedVariantIndex + 1} of {autoResultsList.length}
             </span>
-            <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider block">
+            <span className="text-[12px] text-indigo-400 font-bold uppercase tracking-wider block tabular-nums">
               {selectedVariantIndex === 0 ? "★ Top Recommended" : "Generated Variant"}
             </span>
           </div>
@@ -84,10 +84,10 @@ export default function AutoTimetableViewCard({
 
         <div className="flex items-center gap-2">
           {/* Metric Chips */}
-          <span className="px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold">
+          <span className="px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[12px] font-bold tabular-nums">
             {metrics.halfDays} Free Half-Days
           </span>
-          <span className="px-2 py-1 rounded-lg bg-zinc-800/80 border border-zinc-700/60 text-zinc-300 text-[11px] font-bold">
+          <span className="px-2 py-1 rounded-lg bg-zinc-800/80 border border-zinc-700/60 text-zinc-300 text-[12px] font-bold">
             {totalCredits} Credits
           </span>
           <button

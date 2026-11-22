@@ -2,13 +2,43 @@
 
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue, useCallback } from "react";
 import { AnimatePresence, m } from "framer-motion";
-import { 
-  Search, X, Sparkles, User, Calendar, BookOpen, CreditCard, Car, Home, Bus, 
-  Plus, BarChart3, FileText, GraduationCap, TrendingUp, 
-  Volume2, Users, School, RotateCcw, ClipboardList, Settings, 
-  Code, Star, Utensils, Shirt, Plane, Handshake, HelpCircle, 
-  PartyPopper, Landmark, Clock, MessageSquare, 
-  CheckCircle2, Sun, Moon, AlertTriangle
+import {
+  Search,
+  X,
+  Sparkles,
+  User,
+  Calendar,
+  BookOpen,
+  CreditCard,
+  Car,
+  Home,
+  Bus,
+  Plus,
+  BarChart3,
+  FileText,
+  GraduationCap,
+  TrendingUp,
+  Volume2,
+  Users,
+  School,
+  RotateCcw,
+  ClipboardList,
+  Settings,
+  Code,
+  Star,
+  Utensils,
+  Shirt,
+  Plane,
+  Handshake,
+  HelpCircle,
+  PartyPopper,
+  Landmark,
+  Clock,
+  MessageSquare,
+  CheckCircle2,
+  Sun,
+  Moon,
+  AlertTriangle,
 } from "lucide-react";
 import { api } from "@/lib/sync-engine";
 import { clickable } from "@/lib/a11y";
@@ -18,57 +48,103 @@ function renderCommandIcon(icon: React.ReactNode | string) {
   if (typeof icon !== "string") return <Sparkles size={15} className="text-indigo-500" />;
 
   switch (icon.trim()) {
-    case "👤": return <User size={15} className="text-indigo-500" />;
-    case "📋": return <ClipboardList size={15} className="text-blue-500" />;
-    case "📚": return <BookOpen size={15} className="text-emerald-500" />;
-    case "💳": return <CreditCard size={15} className="text-amber-500" />;
-    case "🚕": return <Car size={15} className="text-amber-500" />;
-    case "📖": return <BookOpen size={15} className="text-indigo-500" />;
-    case "🏠": return <Home size={15} className="text-violet-500" />;
+    case "👤":
+      return <User size={15} className="text-indigo-500" />;
+    case "📋":
+      return <ClipboardList size={15} className="text-blue-500" />;
+    case "📚":
+      return <BookOpen size={15} className="text-emerald-500" />;
+    case "💳":
+      return <CreditCard size={15} className="text-amber-500" />;
+    case "🚕":
+      return <Car size={15} className="text-amber-500" />;
+    case "📖":
+      return <BookOpen size={15} className="text-indigo-500" />;
+    case "🏠":
+      return <Home size={15} className="text-violet-500" />;
     case "🚏":
     case "🚍":
-    case "🚌": return <Bus size={15} className="text-sky-500" />;
-    case "➕": return <Plus size={15} className="text-zinc-400" />;
-    case "📊": return <BarChart3 size={15} className="text-emerald-500" />;
+    case "🚌":
+      return <Bus size={15} className="text-sky-500" />;
+    case "➕":
+      return <Plus size={15} className="text-zinc-400" />;
+    case "📊":
+      return <BarChart3 size={15} className="text-emerald-500" />;
     case "📅":
-    case "🗓️": return <Calendar size={15} className="text-blue-500" />;
-    case "📜": return <FileText size={15} className="text-amber-500" />;
-    case "🎓": return <GraduationCap size={15} className="text-purple-500" />;
-    case "📈": return <TrendingUp size={15} className="text-emerald-500" />;
-    case "📘": return <BookOpen size={15} className="text-blue-500" />;
-    case "📢": return <Volume2 size={15} className="text-rose-500" />;
-    case "👨‍🏫": return <Users size={15} className="text-teal-500" />;
-    case "🏫": return <School size={15} className="text-indigo-500" />;
-    case "🔄": return <RotateCcw size={15} className="text-blue-500" />;
-    case "⚙️": return <Settings size={15} className="text-zinc-500" />;
-    case "💻": return <Code size={15} className="text-violet-500" />;
-    case "⭐": return <Star size={15} className="text-amber-400 fill-amber-400" />;
-    case "🍽️": return <Utensils size={15} className="text-orange-500" />;
-    case "👕": return <Shirt size={15} className="text-sky-500" />;
-    case "✈️": return <Plane size={15} className="text-indigo-500" />;
-    case "🤝": return <Handshake size={15} className="text-emerald-500" />;
-    case "📄": return <FileText size={15} className="text-zinc-400" />;
-    case "❓": return <HelpCircle size={15} className="text-amber-500" />;
-    case "👥": return <Users size={15} className="text-blue-500" />;
-    case "🎉": return <PartyPopper size={15} className="text-pink-500" />;
-    case "🏛️": return <Landmark size={15} className="text-amber-600" />;
-    case "⏰": return <Clock size={15} className="text-amber-500" />;
-    case "🔮": return <Sparkles size={15} className="text-purple-500" />;
-    case "💬": return <MessageSquare size={15} className="text-indigo-500" />;
-    case "📝": return <FileText size={15} className="text-blue-500" />;
-    case "🔢": return <BarChart3 size={15} className="text-emerald-500" />;
+    case "🗓️":
+      return <Calendar size={15} className="text-blue-500" />;
+    case "📜":
+      return <FileText size={15} className="text-amber-500" />;
+    case "🎓":
+      return <GraduationCap size={15} className="text-purple-500" />;
+    case "📈":
+      return <TrendingUp size={15} className="text-emerald-500" />;
+    case "📘":
+      return <BookOpen size={15} className="text-blue-500" />;
+    case "📢":
+      return <Volume2 size={15} className="text-rose-500" />;
+    case "👨‍🏫":
+      return <Users size={15} className="text-teal-500" />;
+    case "🏫":
+      return <School size={15} className="text-indigo-500" />;
+    case "🔄":
+      return <RotateCcw size={15} className="text-blue-500" />;
+    case "⚙️":
+      return <Settings size={15} className="text-zinc-500" />;
+    case "💻":
+      return <Code size={15} className="text-violet-500" />;
+    case "⭐":
+      return <Star size={15} className="text-amber-400 fill-amber-400" />;
+    case "🍽️":
+      return <Utensils size={15} className="text-orange-500" />;
+    case "👕":
+      return <Shirt size={15} className="text-sky-500" />;
+    case "✈️":
+      return <Plane size={15} className="text-indigo-500" />;
+    case "🤝":
+      return <Handshake size={15} className="text-emerald-500" />;
+    case "📄":
+      return <FileText size={15} className="text-zinc-400" />;
+    case "❓":
+      return <HelpCircle size={15} className="text-amber-500" />;
+    case "👥":
+      return <Users size={15} className="text-blue-500" />;
+    case "🎉":
+      return <PartyPopper size={15} className="text-pink-500" />;
+    case "🏛️":
+      return <Landmark size={15} className="text-amber-600" />;
+    case "⏰":
+      return <Clock size={15} className="text-amber-500" />;
+    case "🔮":
+      return <Sparkles size={15} className="text-purple-500" />;
+    case "💬":
+      return <MessageSquare size={15} className="text-indigo-500" />;
+    case "📝":
+      return <FileText size={15} className="text-blue-500" />;
+    case "🔢":
+      return <BarChart3 size={15} className="text-emerald-500" />;
     case "🙈":
-    case "🕵️": return <User size={15} className="text-zinc-400" />;
-    case "☀️": return <Sun size={15} className="text-amber-500" />;
-    case "🌙": return <Moon size={15} className="text-indigo-400" />;
-    case "📏": return <BarChart3 size={15} className="text-blue-500" />;
-    case "🚶": return <Users size={15} className="text-zinc-500" />;
-    case "🟡": return <AlertTriangle size={15} className="text-amber-500" />;
+    case "🕵️":
+      return <User size={15} className="text-zinc-400" />;
+    case "☀️":
+      return <Sun size={15} className="text-amber-500" />;
+    case "🌙":
+      return <Moon size={15} className="text-indigo-400" />;
+    case "📏":
+      return <BarChart3 size={15} className="text-blue-500" />;
+    case "🚶":
+      return <Users size={15} className="text-zinc-500" />;
+    case "🟡":
+      return <AlertTriangle size={15} className="text-amber-500" />;
     case "🔴":
-    case "⚠️": return <AlertTriangle size={15} className="text-red-500" />;
-    case "🎪": return <PartyPopper size={15} className="text-pink-500" />;
-    case "✅": return <CheckCircle2 size={15} className="text-emerald-500" />;
-    case "☐": return <CheckCircle2 size={15} className="text-zinc-400" />;
+    case "⚠️":
+      return <AlertTriangle size={15} className="text-red-500" />;
+    case "🎪":
+      return <PartyPopper size={15} className="text-pink-500" />;
+    case "✅":
+      return <CheckCircle2 size={15} className="text-emerald-500" />;
+    case "☐":
+      return <CheckCircle2 size={15} className="text-zinc-400" />;
     default:
       if (/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u.test(icon)) {
         return <Sparkles size={15} className="text-indigo-500" />;
@@ -134,7 +210,10 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
       return;
     }
 
-    const searchTerm = deferredQuery.slice(kohaIdx + 4).trim().replace(/^[:;,\-\s]+/, "");
+    const searchTerm = deferredQuery
+      .slice(kohaIdx + 4)
+      .trim()
+      .replace(/^[:;,\-\s]+/, "");
     if (!searchTerm) {
       setKohaBooks([]);
       setKohaLoading(true);
@@ -145,10 +224,26 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
     if (demoMode) {
       const timer = setTimeout(() => {
         const mockResults = [
-          { title: "Introduction to Algorithms", author: "Cormen, Leiserson, Rivest, Stein", availability: "Available (4 copies)" },
-          { title: "Computer Networking: A Top-Down Approach", author: "Kurose, Ross", availability: "Reference Only (1 copy)" },
-          { title: "Design Patterns: Elements of Reusable Object-Oriented Software", author: "Gamma, Helm, Johnson, Vlissides", availability: "Checked Out (Due 2026-07-10)" }
-        ].filter(b => b.title.toLowerCase().includes(searchTerm.toLowerCase()) || b.author.toLowerCase().includes(searchTerm.toLowerCase()));
+          {
+            title: "Introduction to Algorithms",
+            author: "Cormen, Leiserson, Rivest, Stein",
+            availability: "Available (4 copies)",
+          },
+          {
+            title: "Computer Networking: A Top-Down Approach",
+            author: "Kurose, Ross",
+            availability: "Reference Only (1 copy)",
+          },
+          {
+            title: "Design Patterns: Elements of Reusable Object-Oriented Software",
+            author: "Gamma, Helm, Johnson, Vlissides",
+            availability: "Checked Out (Due 2026-07-10)",
+          },
+        ].filter(
+          (b) =>
+            b.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            b.author.toLowerCase().includes(searchTerm.toLowerCase()),
+        );
         setKohaBooks(mockResults);
         setKohaLoading(false);
       }, 100);
@@ -259,7 +354,7 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
         }
       }
     },
-    [filteredCommands, selectedIndex, activeSubpage, onClose]
+    [filteredCommands, selectedIndex, activeSubpage, onClose],
   );
 
   if (!isOpen) return null;
@@ -295,7 +390,7 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
           ) : (
             <>
               {/* Top Search Input Bar */}
-              <div className="flex items-center gap-3 px-4 py-3.5 border-b border-zinc-200/80 dark:border-zinc-800 shrink-0">
+              <div className="flex items-center gap-3 px-4 py-3.5 border-b border-zinc-200/80 dark:border-zinc-800 shrink-0 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring">
                 <Search size={18} className="text-zinc-400 dark:text-zinc-500 shrink-0" />
                 <input
                   ref={inputRef}
@@ -306,9 +401,7 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
                   className="w-full bg-transparent text-sm font-medium text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none"
                 />
                 {kohaLoading && (
-                  <span className="text-[10px] font-bold text-amber-500 animate-pulse shrink-0">
-                    Searching Koha...
-                  </span>
+                  <span className="text-xs font-bold text-amber-500 animate-pulse shrink-0">Searching Koha...</span>
                 )}
                 <button
                   onClick={onClose}
@@ -353,20 +446,26 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             {cmd.icon && (
-                              <span className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border transition-all ${
-                                isSelected
-                                  ? "bg-white/20 border-white/30 text-white"
-                                  : "bg-zinc-100/80 dark:bg-zinc-800/80 border-zinc-200/60 dark:border-zinc-700/60"
-                              }`}>
+                              <span
+                                className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border transition-all ${
+                                  isSelected
+                                    ? "bg-white/20 border-white/30 text-white"
+                                    : "bg-zinc-100/80 dark:bg-zinc-800/80 border-zinc-200/60 dark:border-zinc-700/60"
+                                }`}
+                              >
                                 {renderCommandIcon(cmd.icon)}
                               </span>
                             )}
                             <div className="min-w-0">
-                              <p className={`text-xs font-bold truncate ${isSelected ? "text-white" : "text-zinc-900 dark:text-white"}`}>
+                              <p
+                                className={`text-xs font-bold truncate ${isSelected ? "text-white" : "text-zinc-900 dark:text-white"}`}
+                              >
                                 {cmd.label}
                               </p>
                               {cmd.description && (
-                                <p className={`text-[11px] truncate mt-0.5 ${isSelected ? "text-indigo-100" : "text-zinc-500 dark:text-zinc-400"}`}>
+                                <p
+                                  className={`text-xs truncate mt-0.5 ${isSelected ? "text-indigo-100" : "text-zinc-500 dark:text-zinc-400"}`}
+                                >
                                   {cmd.description}
                                 </p>
                               )}
@@ -376,7 +475,7 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
                           <div className="flex items-center gap-2 shrink-0 ml-2">
                             {cmd.category && (
                               <span
-                                className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md ${
+                                className={`text-xs font-extrabold uppercase px-1.5 py-0.5 rounded-md ${
                                   isSelected
                                     ? "bg-white/20 text-white"
                                     : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
@@ -396,7 +495,7 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
                 {/* Right Detail Preview Pane */}
                 {selectedCommand?.detail && (
                   <div className="hidden md:block w-72 p-4 bg-zinc-50/50 dark:bg-zinc-950/40 overflow-y-auto shrink-0 border-l border-zinc-100 dark:border-zinc-800/60">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-3">
+                    <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-3">
                       Command Details
                     </p>
                     {selectedCommand.detail}
@@ -405,16 +504,19 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
               </div>
 
               {/* Bottom Footer Shortcuts Bar */}
-              <div className="flex items-center justify-between px-4 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border-t border-zinc-200/60 dark:border-zinc-800 text-[10px] font-medium text-zinc-500 dark:text-zinc-400 shrink-0">
+              <div className="flex items-center justify-between px-4 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border-t border-zinc-200/60 dark:border-zinc-800 text-xs font-medium text-zinc-500 dark:text-zinc-400 shrink-0">
                 <div className="flex items-center gap-3">
                   <span className="flex items-center gap-1">
-                    <kbd className="px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-800 font-mono text-[9px]">↑↓</kbd> Navigate
+                    <kbd className="px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-800 font-mono text-xs">↑↓</kbd>{" "}
+                    Navigate
                   </span>
                   <span className="flex items-center gap-1">
-                    <kbd className="px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-800 font-mono text-[9px]">↵</kbd> Select
+                    <kbd className="px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-800 font-mono text-xs">↵</kbd>{" "}
+                    Select
                   </span>
                   <span className="flex items-center gap-1">
-                    <kbd className="px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-800 font-mono text-[9px]">ESC</kbd> Close
+                    <kbd className="px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-800 font-mono text-xs">ESC</kbd>{" "}
+                    Close
                   </span>
                 </div>
                 <span className="flex items-center gap-1 font-bold text-indigo-600 dark:text-indigo-400">

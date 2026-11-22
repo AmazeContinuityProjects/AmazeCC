@@ -1,3 +1,4 @@
+import { TEXT_BLOCK } from "@/lib/uiTokens";
 import React, { useState, useEffect } from "react";
 import { FileText, BookOpen, UploadCloud, AlertCircle } from "lucide-react";
 import { LoadingSpinner } from "../shared";
@@ -6,6 +7,7 @@ import { getQBankPapers, getQBankQuestions, uploadQBankPaper } from "@/lib/qbank
 import ExamQuestion from "../qbank/ExamQuestion";
 import FetchButton from "../shared/FetchButton";
 import SelectField from "../shared/primitives/SelectField";
+import { SegmentedControl } from "../shared/primitives/Controls";
 
 export default function CourseQBankTab({ courseCode, username }: { courseCode: string; username: string }) {
   const [detailTab, setDetailTab] = useState<"papers" | "questions">("papers");
@@ -83,10 +85,8 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
       setUploadSuccess(true);
       setTitle("");
       setFileUrl("");
-      setTimeout(() => {
-        setUploadSuccess(false);
-        setShowUploadForm(false);
-      }, 3000);
+      // The confirmation below stays put until the student dismisses it —
+      // an in-app result, not a toast that vanishes before it is read.
     } catch (err: any) {
       setUploadError("Failed to upload paper. " + (err.message || ""));
     } finally {
@@ -106,28 +106,14 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 mt-6">
       {/* Tab Navigation & Upload Button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div className="flex bg-gray-100 dark:bg-black rounded-lg p-1 w-full sm:w-max">
-          <button
-            onClick={() => setDetailTab("papers")}
-            className={`flex-1 sm:flex-none px-5 py-2 text-sm font-semibold rounded-md transition-all ${
-              detailTab === "papers"
-                ? "bg-white text-blue-600 dark:bg-slate-800 dark:text-blue-400 shadow-sm"
-                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-            }`}
-          >
-            Papers ({papers.length})
-          </button>
-          <button
-            onClick={() => setDetailTab("questions")}
-            className={`flex-1 sm:flex-none px-5 py-2 text-sm font-semibold rounded-md transition-all ${
-              detailTab === "questions"
-                ? "bg-white text-blue-600 dark:bg-slate-800 dark:text-blue-400 shadow-sm"
-                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-            }`}
-          >
-            Questions ({questions.length})
-          </button>
-        </div>
+        <SegmentedControl
+          options={[
+            { value: "papers" as const, label: `Papers (${papers.length})` },
+            { value: "questions" as const, label: `Questions (${questions.length})` },
+          ]}
+          value={detailTab}
+          onChange={setDetailTab}
+        />
 
         {error && (
           <div className="mb-6 p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 flex items-start gap-3 w-full">
@@ -152,8 +138,6 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
       {/* Inline Upload Form (Frictionless) */}
       {showUploadForm && (
         <div className="mb-8 p-5 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800/50 rounded-2xl shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-
           {uploadSuccess ? (
             <div className="py-6 text-center animate-in fade-in zoom-in duration-300">
               <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -161,6 +145,16 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
               </div>
               <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Thanks for contributing!</h3>
               <p className="text-gray-500 dark:text-gray-400 text-sm">Your paper has been queued for admin review.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setUploadSuccess(false);
+                  setShowUploadForm(false);
+                }}
+                className="mt-4 inline-flex min-h-11 items-center justify-center rounded-lg border border-border-strong bg-surface px-4 text-sm font-bold text-text-heading hover:bg-surface-secondary cursor-pointer"
+              >
+                Done
+              </button>
             </div>
           ) : (
             <form onSubmit={handleUpload} className="space-y-4">
@@ -276,20 +270,20 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
                   <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl shadow-inner group-hover:scale-110 transition-transform duration-300">
                     <FileText className="w-6 h-6" />
                   </div>
-                  <div className="min-w-0 flex-1 pt-1">
+                  <div className={`${TEXT_BLOCK} pt-1`}>
                     <h4 className="font-bold text-sm text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {p.title}
                     </h4>
-                    <p className="text-[11px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">
                       {p.source_type}
                     </p>
                   </div>
                 </div>
                 <div className="mt-auto flex items-center justify-between border-t border-gray-100/50 dark:border-gray-800/50 pt-4 relative z-10">
-                  <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                  <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                     {p.exam_semester} {p.exam_year}
                   </span>
-                  <span className="text-[11px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform">
+                  <span className="text-xs font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform">
                     View PDF →
                   </span>
                 </div>

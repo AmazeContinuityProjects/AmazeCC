@@ -1,0 +1,353 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-20T00:00:00.000Z",
+  "title": "Design System: AmazeCC",
+  "extensions": {
+    "colorMeta": {
+      "theme-accent": {
+        "role": "primary",
+        "displayName": "Theme Accent (Sky)",
+        "canonical": "#0ea5e9",
+        "tonalRamp": [
+          "oklch(0.32 0.07 240)",
+          "oklch(0.42 0.10 240)",
+          "oklch(0.52 0.13 240)",
+          "oklch(0.62 0.15 240)",
+          "oklch(0.70 0.15 240)",
+          "oklch(0.80 0.11 240)",
+          "oklch(0.90 0.06 240)",
+          "oklch(0.96 0.03 240)"
+        ]
+      },
+      "neon-pink": {
+        "role": "primary",
+        "displayName": "Neon Pink",
+        "canonical": "#ff2bd6",
+        "tonalRamp": [
+          "oklch(0.35 0.14 330)",
+          "oklch(0.45 0.20 330)",
+          "oklch(0.55 0.24 330)",
+          "oklch(0.65 0.26 330)",
+          "oklch(0.75 0.22 330)",
+          "oklch(0.84 0.16 330)",
+          "oklch(0.92 0.09 330)",
+          "oklch(0.97 0.04 330)"
+        ]
+      },
+      "forest": {
+        "role": "primary",
+        "displayName": "Forest Green",
+        "canonical": "#059669",
+        "tonalRamp": [
+          "oklch(0.35 0.09 160)",
+          "oklch(0.45 0.12 160)",
+          "oklch(0.55 0.14 160)",
+          "oklch(0.65 0.15 160)",
+          "oklch(0.72 0.13 160)",
+          "oklch(0.81 0.10 160)",
+          "oklch(0.90 0.06 160)",
+          "oklch(0.96 0.03 160)"
+        ]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Cool Canvas",
+        "canonical": "oklch(0.982 0.004 247)",
+        "tonalRamp": [
+          "oklch(0.13 0.027 255)",
+          "oklch(0.18 0.026 255)",
+          "oklch(0.25 0.024 255)",
+          "oklch(0.42 0.023 255)",
+          "oklch(0.52 0.02 255)",
+          "oklch(0.68 0.015 255)",
+          "oklch(0.88 0.008 255)",
+          "oklch(0.982 0.004 247)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "oklch(1 0 0)",
+        "tonalRamp": [
+          "oklch(0.20 0 0)",
+          "oklch(0.23 0 0)",
+          "oklch(0.25 0 0)",
+          "oklch(0.27 0 0)",
+          "oklch(0.28 0 0)",
+          "oklch(0.935 0.008 247)",
+          "oklch(0.965 0.005 247)",
+          "oklch(1 0 0)"
+        ]
+      },
+      "text-heading": {
+        "role": "neutral",
+        "displayName": "Heading Ink",
+        "canonical": "oklch(0.18 0.026 255)",
+        "tonalRamp": [
+          "oklch(0.13 0.027 255)",
+          "oklch(0.18 0.026 255)",
+          "oklch(0.25 0.024 255)",
+          "oklch(0.35 0.024 255)",
+          "oklch(0.42 0.023 255)",
+          "oklch(0.52 0.02 255)",
+          "oklch(0.68 0.015 255)",
+          "oklch(0.985 0.003 247)"
+        ]
+      },
+      "border-muted": {
+        "role": "neutral",
+        "displayName": "Hairline Border",
+        "canonical": "oklch(0.88 0.008 247)",
+        "tonalRamp": [
+          "oklch(0.78 0.011 247)",
+          "oklch(0.80 0.010 247)",
+          "oklch(0.83 0.009 247)",
+          "oklch(0.85 0.009 247)",
+          "oklch(0.88 0.008 247)",
+          "oklch(0.91 0.007 247)",
+          "oklch(0.94 0.006 247)",
+          "oklch(0.97 0.004 247)"
+        ]
+      },
+      "success": {
+        "role": "success",
+        "displayName": "Attendance Safe Green",
+        "canonical": "oklch(0.47 0.135 152)",
+        "tonalRamp": [
+          "oklch(0.35 0.09 152)",
+          "oklch(0.42 0.12 152)",
+          "oklch(0.47 0.135 152)",
+          "oklch(0.58 0.15 152)",
+          "oklch(0.68 0.14 152)",
+          "oklch(0.80 0.12 152)",
+          "oklch(0.90 0.07 152)",
+          "oklch(0.97 0.02 152)"
+        ]
+      },
+      "warning": {
+        "role": "warning",
+        "displayName": "Watch Amber",
+        "canonical": "oklch(0.58 0.142 72)",
+        "tonalRamp": [
+          "oklch(0.37 0.09 72)",
+          "oklch(0.46 0.12 72)",
+          "oklch(0.52 0.14 72)",
+          "oklch(0.58 0.142 72)",
+          "oklch(0.70 0.15 78)",
+          "oklch(0.82 0.13 78)",
+          "oklch(0.92 0.08 78)",
+          "oklch(0.97 0.03 78)"
+        ]
+      },
+      "danger": {
+        "role": "danger",
+        "displayName": "Critical Red",
+        "canonical": "oklch(0.52 0.2 27)",
+        "tonalRamp": [
+          "oklch(0.35 0.13 27)",
+          "oklch(0.42 0.17 27)",
+          "oklch(0.52 0.2 27)",
+          "oklch(0.62 0.20 27)",
+          "oklch(0.74 0.19 27)",
+          "oklch(0.84 0.16 27)",
+          "oklch(0.92 0.09 27)",
+          "oklch(0.97 0.03 27)"
+        ]
+      },
+      "info": {
+        "role": "info",
+        "displayName": "Info Blue",
+        "canonical": "oklch(0.52 0.16 255)",
+        "tonalRamp": [
+          "oklch(0.35 0.10 255)",
+          "oklch(0.42 0.13 255)",
+          "oklch(0.52 0.16 255)",
+          "oklch(0.62 0.17 255)",
+          "oklch(0.74 0.16 255)",
+          "oklch(0.84 0.13 255)",
+          "oklch(0.92 0.07 255)",
+          "oklch(0.97 0.03 255)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero titles and large stat numbers only; DM Sans black, tight tracking."
+      },
+      "headline": { "displayName": "Headline", "purpose": "Section headings and page titles." },
+      "title": { "displayName": "Title", "purpose": "Card titles and sub-section labels." },
+      "body": { "displayName": "Body", "purpose": "Primary copy in Geist; neutral and quiet." },
+      "label": { "displayName": "Small Label", "purpose": "Course codes, eyebrows, badges, uppercase action caps." }
+    },
+    "shadows": [
+      {
+        "name": "resting-card",
+        "value": "0 1px 2px color-mix(in oklab, var(--text-heading) 8%, transparent)",
+        "purpose": "Default for `.solid-card` list shells and resting surfaces."
+      },
+      { "name": "surface-card-rest", "value": "0 1px 3px rgba(0, 0, 0, 0.05)", "purpose": "Resting `.surface-card`." },
+      {
+        "name": "surface-card-hover",
+        "value": "0 4px 12px rgba(0, 0, 0, 0.08)",
+        "purpose": "Hovered/raised `.surface-card`."
+      },
+      {
+        "name": "floating-control",
+        "value": "0 2px 8px rgba(0, 0, 0, 0.10)",
+        "purpose": "Switch thumbs, popovers, menus, page-header semi-pill (`shadow-sm`)."
+      },
+      {
+        "name": "overlay",
+        "value": "0 24px 48px rgba(0, 0, 0, 0.24)",
+        "purpose": "Dialogs, bottom sheets, sidebars (`shadow-2xl`)."
+      },
+      {
+        "name": "bottom-sheet-lift",
+        "value": "0 -15px 30px rgba(0, 0, 0, 0.12)",
+        "purpose": "Directional upward lift on the shared bottom sheet."
+      }
+    ],
+    "motion": [
+      { "name": "fast", "value": "150ms", "purpose": "Hover states and buttons." },
+      { "name": "standard", "value": "250ms", "purpose": "Panels and navigation." },
+      { "name": "slow", "value": "350ms", "purpose": "Dialogs and large transitions." },
+      { "name": "ease-emphasized", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Slide-up entry animations." },
+      {
+        "name": "ease-press",
+        "value": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "purpose": "Touch press feedback and sidebar motion."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single main action on a screen; filled accent, white text, 150ms hover.",
+      "html": "<button class=\"ds-btn-primary\">Continue</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 24px; border: none; border-radius: 8px; background: var(--theme-accent, var(--primary, #0ea5e9)); color: #fff; font-family: var(--font-geist, sans-serif); font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color 150ms ease, transform 150ms ease; } .ds-btn-primary:hover { background: var(--theme-accent-deep, #0284c7); } .ds-btn-primary:focus-visible { outline: 2px solid var(--theme-accent, #0ea5e9); outline-offset: 2px; } .ds-btn-primary:active { transform: scale(0.97); } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "The alternative action; outlined hairline on surface with a neutral hover tint.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border: 1px solid var(--border-muted, #dedee3); border-radius: 8px; background: var(--surface, #fff); color: var(--text-primary, #40404a); font-family: var(--font-geist, sans-serif); font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease; } .ds-btn-secondary:hover { background: var(--surface-hover, #f4f4f6); border-color: var(--border-strong, #c8c8d0); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--theme-accent, #0ea5e9); outline-offset: 2px; } .ds-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Low-emphasis toolbar or inline action; transparent until hover.",
+      "html": "<button class=\"ds-btn-ghost\">More options</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px; border: none; border-radius: 8px; background: transparent; color: var(--text-secondary, #6b6b76); font-family: var(--font-geist, sans-serif); font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color 150ms ease, color 150ms ease; } .ds-btn-ghost:hover { background: var(--surface-hover, #f4f4f6); color: var(--text-primary, #40404a); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--theme-accent, #0ea5e9); outline-offset: 2px; } .ds-btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Destructive confirmation; solid critical red with white text.",
+      "html": "<button class=\"ds-btn-danger\">Delete</button>",
+      "css": ".ds-btn-danger { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border: none; border-radius: 8px; background: var(--danger, #dc2626); color: #fff; font-family: var(--font-geist, sans-serif); font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color 150ms ease; } .ds-btn-danger:hover { background: color-mix(in oklab, var(--danger, #dc2626) 85%, black); } .ds-btn-danger:focus-visible { outline: 2px solid var(--danger, #dc2626); outline-offset: 2px; } .ds-btn-danger:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }"
+    },
+    {
+      "name": "Surface Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The default content unit: neutral surface, hairline border, soft resting shadow, 16px corners.",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-title\">Weekly attendance</h3><p class=\"ds-card-body\">You are above the 75% threshold in every course.</p></div>",
+      "css": ".ds-card { background: var(--surface, #fff); color: var(--text-primary, #40404a); border: 1px solid var(--border-muted, #dedee3); border-radius: 16px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: box-shadow 150ms ease, border-color 150ms ease; } .ds-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); } .ds-card-title { margin: 0 0 8px; font-family: var(--font-dm-sans, sans-serif); font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: var(--text-heading, #2e2e37); } .ds-card-body { margin: 0; font-family: var(--font-geist, sans-serif); font-size: 14px; line-height: 1.5; color: var(--text-secondary, #6b6b76); }"
+    },
+    {
+      "name": "Semantic Badge",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Status label using a soft semantic tint; success / warning / danger / info.",
+      "html": "<span class=\"ds-badge ds-badge-success\">Healthy</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 8px; font-family: var(--font-geist, sans-serif); font-size: 12px; font-weight: 700; letter-spacing: 0.04em; } .ds-badge-success { background: var(--success-surface, #eaf7ef); color: var(--success-foreground, #276749); } .ds-badge-warning { background: var(--warning-surface, #fdf5e6); color: var(--warning-foreground, #8a5a0b); } .ds-badge-danger { background: var(--danger-surface, #fdeceb); color: var(--danger-foreground, #9b2c2c); } .ds-badge-info { background: var(--info-surface, #ebf2ff); color: var(--info-foreground, #2b4d99); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Single-line field with neutral hairline, 12px corners, accent focus ring, and a 16px touch floor.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Search courses\" aria-label=\"Search courses\">",
+      "css": ".ds-input { box-sizing: border-box; width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--border-muted, #dedee3); border-radius: 12px; background: var(--surface, #fff); color: var(--text-primary, #40404a); font-family: var(--font-geist, sans-serif); font-size: 14px; outline: none; transition: border-color 150ms ease, box-shadow 150ms ease; } .ds-input::placeholder { color: var(--text-muted, #85858f); } .ds-input:hover { border-color: var(--border-strong, #c8c8d0); } .ds-input:focus-visible { border-color: var(--theme-accent, #0ea5e9); box-shadow: 0 0 0 2px color-mix(in oklab, var(--theme-accent, #0ea5e9) 42%, transparent); } .ds-input[aria-invalid=\"true\"] { border: 1.5px solid var(--danger, #dc2626); } .ds-input:disabled { opacity: 0.5; cursor: not-allowed; } @media (pointer: coarse) { .ds-input { font-size: 16px; } }"
+    },
+    {
+      "name": "Page Header",
+      "kind": "custom",
+      "refersTo": "page-header",
+      "description": "Signature semi-pill page header: flat pastel tint anchored to the top, black DM Sans title, action buttons on the right.",
+      "html": "<header class=\"ds-page-header\"><div><p class=\"ds-page-header-eyebrow\">ACADEMICS</p><h1 class=\"ds-page-header-title\">Weekly attendance</h1></div><button class=\"ds-page-header-action\">REFRESH</button></header>",
+      "css": ".ds-page-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 24px; border: 1px solid var(--border-muted, #dedee3); border-top: none; border-radius: 0 0 16px 16px; background: color-mix(in oklab, var(--theme-accent, #0ea5e9) 8%, var(--surface-secondary, #f5f5f7)); box-shadow: 0 2px 8px rgba(0,0,0,0.05); } .ds-page-header-eyebrow { margin: 0 0 4px; font-family: var(--font-geist, sans-serif); font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted, #85858f); } .ds-page-header-title { margin: 0; font-family: var(--font-dm-sans, sans-serif); font-size: 24px; font-weight: 900; letter-spacing: -0.02em; color: var(--text-heading, #2e2e37); } .ds-page-header-action { flex: none; padding: 8px 14px; border: 1px solid var(--border-muted, #dedee3); border-radius: 8px; background: var(--surface, #fff); color: var(--theme-accent, #0ea5e9); font-family: var(--font-geist, sans-serif); font-size: 11px; font-weight: 800; letter-spacing: 0.06em; cursor: pointer; transition: background-color 150ms ease; } .ds-page-header-action:hover { background: var(--surface-hover, #f4f4f6); } .ds-page-header-action:focus-visible { outline: 2px solid var(--theme-accent, #0ea5e9); outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Calm Command Center",
+    "overview": "AmazeCC is a Student Operating System, not a showcase. Its visual identity is defined by a single promise: a student walking between classes should be able to open the app and understand their whole academic picture in seconds, with no hunting and no cognitive noise. The interface is calm, helpful, friendly, academic, modern, and trustworthy — deliberately not corporate, enterprise, futuristic, gaming-oriented, social-media-like, or overly decorative.\n\nThe system is 70% functional student OS, 20% Material Design principles, and 10% organic personality. \"Organic\" here is a softening agent, not a theme: softer corners, softer colors, softer shadows, comfortable spacing, and a natural visual rhythm — never leaf icons, plant illustrations, gardening motifs, or irregular navigation. Density is tuned for a phone first: the viewport starts at 85% zoom on mobile so roughly 17% more of the app fits per screen, with pinch-zoom still available and safe-area insets respected for the bottom navigation, sheets, and docked bars.\n\nThree surfaces carry every screen: a near-white neutral canvas, layered neutral surfaces, and one user-chosen accent used for actions and state. Light and Dark are both first-class modes over the same structure, with Dark the default; a palette only tints the surfaces, never the geometry. Consistency outranks creativity at every turn: reuse an existing component or token before inventing a new one, and when a choice improves aesthetics but reduces usability, choose usability.",
+    "keyCharacteristics": [
+      "Mobile-first, touch-first, and offline-capable; 44px minimum touch targets and a 16px input font floor on coarse pointers.",
+      "Neutral-first canvas with a single opt-in accent; semantic colors reserved for attendance status and feedback.",
+      "Softer, geometric, Material-adjacent form language — generous radii, quiet tonal layering, no decorative illustration.",
+      "Dense but readable: a strict six-step type scale, an eight-step spacing scale, and a six-step radius scale.",
+      "Two first-class themes (light and dark, dark by default) plus four selectable accent palettes and a custom accent, all driven by the same tokens."
+    ],
+    "rules": [
+      {
+        "name": "The Token-Only Rule",
+        "body": "No hardcoded color in a component. Write the semantic token or the aliased neutral family, never a raw hex or an off-scale step.",
+        "section": "colors"
+      },
+      {
+        "name": "The One-Accent Rule",
+        "body": "One accent per screen. It signals action, selection, or progress; it is never used as a background wash for whole pages or as body text.",
+        "section": "colors"
+      },
+      {
+        "name": "The Meaning Rule",
+        "body": "Green / amber / red are attendance and status language (safe / watch / critical) first. They must not be repurposed as decorative category colors.",
+        "section": "colors"
+      },
+      {
+        "name": "The Six-Sizes Rule",
+        "body": "Display 32 / Heading 24 / Subheading 20 / Body 16 / Caption 14 / Label 12 — nothing between, nothing beyond. Use weight and color for emphasis, not a new font size.",
+        "section": "typography"
+      },
+      {
+        "name": "The Heavy-Heading Rule",
+        "body": "Headings are font-black in DM Sans with tight tracking; body copy never borrows that weight.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-At-Rest Rule",
+        "body": "Surfaces are flat at rest; a shadow is a response to state (hover, focus, elevation) or a genuine overlay. Never stack shadows to fake importance.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do reuse an existing component, token, spacing step, shadow, or type role before adding anything new.",
+      "Do keep the mobile viewport at 85% initial scale, respect env(safe-area-inset-*), and give small icon buttons a 44px hit area (.hit-expand).",
+      "Do use the six radius steps (8 / 12 / 16 / 24 / 28 / 32px) and the eight spacing steps (4–64px) exactly.",
+      "Do keep the four semantic colors tied to status, and let the neutral chain carry every surface so palette changes propagate.",
+      "Do ship WCAG AA contrast, keyboard navigation, visible focus states, screen-reader labels, and the reduced-motion opt-out for looping animations.",
+      "Do answer \"what does the student need right now?\" before showing analytics or secondary information."
+    ],
+    "donts": [
+      "Don't introduce a new color, hardcoded hex, new card style, new button style, new spacing scale, or new shadow system.",
+      "Don't use rounded-3xl, rounded-[18px], rounded-[22px], custom shadow-[…] values, or off-scale spacing.",
+      "Don't use leaf/plant icons, botanical illustrations, random blobs, or irregular navigation — \"organic\" affects atmosphere only.",
+      "Don't make the interface feel corporate, enterprise, futuristic, gaming-oriented, or social-media-like.",
+      "Don't add a seventh font size, use decorative illustration over comprehension, or let a design choice win over usability or consistency."
+    ]
+  }
+}

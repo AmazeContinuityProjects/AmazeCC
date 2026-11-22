@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import vm from "node:vm";
 import { describe, expect, it } from "vitest";
 import chennai from "../data/campus/chennai.json";
@@ -61,21 +61,30 @@ function findWorkerChunk(): string | null {
 }
 
 /**
- * The PDF dossier worker among the emitted chunks.
+ * The PDF dossier worker *entry* among the emitted chunks.
  *
- * Identified the same way as the solver — by what it says, not what it is
- * called: `"Invalid worker request type"` is a literal only `pdf.worker.ts`
- * writes, so this cannot match the *sender* in the main bundle, which also
- * mentions `build_dossier_pdf`. Unlike the solver, the word-`document`
- * exclusion above does not apply: the bundled jsPDF names `document` inside
- * guarded branches, and the vm test below is what actually proves the worker
- * never executes them at load.
+ * The `"Invalid worker request type"` literal — unique to `pdf.worker.ts` —
+ * lives in a split webpack module chunk. A browser never loads that file as
+ * the worker script: `new Worker(new URL("pdf.worker.ts", import.meta.url))`
+ * emits a small webpack-runtime chunk which `importScripts` the split chunks
+ * and then executes the worker module. Running the split chunk on its own
+ * only appends it to `webpackChunk_N_E` — nothing installs `self.onmessage`.
+ *
+ * So locate the module chunk by its literal, then return the runtime chunk
+ * whose chunk map references that module id. That is the file a real browser
+ * hands to `Worker()`, and the only one worth executing in the vm below.
  */
 function findPdfWorkerChunk(): string | null {
-  for (const file of listChunkFiles()) {
-    if (readFileSync(file, "utf8").includes("Invalid worker request type")) return file;
-  }
-  return null;
+  const files = listChunkFiles();
+  const moduleChunk = files.find((file) => readFileSync(file, "utf8").includes("Invalid worker request type"));
+  if (!moduleChunk) return null;
+  const moduleId = basename(moduleChunk).split(".")[0];
+  const entry = files.find((file) => {
+    if (file === moduleChunk) return false;
+    const src = readFileSync(file, "utf8");
+    return src.includes("importScripts") && src.includes("webpackChunk_N_E") && src.includes(`${moduleId}:"`);
+  });
+  return entry ?? moduleChunk;
 }
 
 const workerFile = findWorkerChunk();
@@ -108,32 +117,25 @@ interface Reply {
 }
 
 /**
- * Run the chunk in a context with only what a worker has, and post it a message.
- *
- * Defaults to the solver's chunk, so every existing call is unchanged;
- * `chunkFile` points it at any other emitted worker.
- *
- * Deliberately minimal: `self`, `console` and `crypto` are the globals a module
- * worker can rely on, and nothing else is provided. If the bundle reaches for
- * anything more, this throws — which is the point, because in a real worker that
- * would be a `ReferenceError` at load time and the page would fall back to
- * running the solve inline without ever telling anyone.
- */
-/**
  * Give the context the genuine worker globals an emitted bundle may reach for.
  *
- * - `importScripts`: webpack's chunk loader calls it at startup when a
- *   dependency (jsPDF) was split into its own chunk. The URL it passes is a
- *   browser path (`/_next/static/chunks/…`), so it resolves by basename
+ * - `importScripts`: webpack's chunk loader calls it at startup to pull in the
+ *   split module chunks (jsPDF and the dossier modules). The URL it passes is
+ *   a browser path (`/_next/static/chunks/…`), so it resolves by basename
  *   against the emitted files and evaluates them in the same context —
  *   exactly as a real worker would.
- * - `TextEncoder`/`TextDecoder`: plain worker globals the bundle's own
- *   runtime touches. Real workers all have them, so their absence would be a
- *   harness artefact, not a defect worth catching.
+ * - `TextEncoder`/`TextDecoder`, `atob`/`btoa`, `navigator`, `location`,
+ *   `fetch`/`Headers`/`Request`/`Response`/`AbortController`, `setTimeout`:
+ *   all part of a DedicatedWorkerGlobalScope. jsPDF binds `atob`/`btoa` off
+ *   the global at import; without them the bundle dies before it can install
+ *   its handler, which would be a harness artifact rather than a worker bug.
+ * - `window`: the emitted PDF worker bundle drags in a browser-only fetch
+ *   wrapper that aliases `window.fetch` at import time. Map that one legacy
+ *   name onto the worker global object so it cannot mask handler
+ *   registration; no `document` is provided and no DOM path is executed.
  *
- * Everything else stays unprovided on purpose: the original test's claim is
- * that nothing more is needed, and it is still the missing-globals class of
- * failure if that claim ever stops being true.
+ * Everything else stays unprovided: reaching for `document` at load, or
+ * failing to install a handler, still fails these tests.
  */
 function withWorkerGlobals(context: vm.Context): vm.Context {
   const target = context as unknown as Record<string, unknown>;
@@ -142,6 +144,21 @@ function withWorkerGlobals(context: vm.Context): vm.Context {
   // jsPDF binds these off the global at import: `s.atob.bind(s)`.
   target.atob = atob;
   target.btoa = btoa;
+  target.navigator = { userAgent: "worker" };
+  target.location = { href: "blob:http://localhost/worker" };
+  target.fetch = fetch;
+  target.Headers = Headers;
+  target.Request = Request;
+  target.Response = Response;
+  target.AbortController = AbortController;
+  target.URL = URL;
+  target.setTimeout = setTimeout;
+  target.clearTimeout = clearTimeout;
+  const noopStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {}, clear: () => {} };
+  target.localStorage = noopStorage;
+  target.sessionStorage = noopStorage;
+  // Browser-only bundled modules address the global as `window`; alias it.
+  target.window = target;
   target.importScripts = (...urls: string[]) => {
     for (const url of urls) {
       const base = url.split("?")[0].split("/").pop() ?? "";
@@ -202,10 +219,15 @@ describe.runIf(workerFile)("the emitted worker", () => {
     expect(src).toMatch(/self\.onmessage/);
   });
 
-  it("installs a message handler", () => {
+  it("installs a message handler", async () => {
     const source = readFileSync(workerFile!, "utf8");
-    const context = vm.createContext({ self: { onmessage: null, postMessage: () => {} }, console, crypto });
+    const context = withWorkerGlobals(
+      vm.createContext({ self: { onmessage: null, postMessage: () => {} }, console, crypto }),
+    );
     new vm.Script(source, { filename: workerFile! }).runInContext(context);
+    // The webpack runtime installs the worker module after loading its split
+    // chunks, on a promise chain — let those microtasks settle first.
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(typeof (context as { self: { onmessage: unknown } }).self.onmessage).toBe("function");
   });
 
@@ -299,11 +321,11 @@ describe.skipIf(workerFile)("the emitted worker", () => {
 
 describe.runIf(pdfWorkerFile)("the emitted PDF dossier worker", () => {
   it("loads with only the globals a worker has, and installs its handler", async () => {
-    // Reaching the assertion means the chunk evaluated in a bare context —
-    // no `document`, no `window` — which is exactly what a real worker
-    // gives it, and the message handler is on. Bundled jsPDF names `document`
-    // in code it must never reach at import time; if it ever does, this is
-    // where it throws instead of silently dying in the browser.
+    // Reaching the assertion means the worker entry evaluated with worker
+    // globals only (no `document`, no real DOM) and the message handler is on.
+    // Bundled jsPDF names `document` in code it must never reach at import
+    // time; if it ever does, this is where it throws instead of silently
+    // dying in the browser.
     expect(pdfWorkerFile).toBeTruthy();
     const source = readFileSync(pdfWorkerFile!, "utf8");
     const context = withWorkerGlobals(

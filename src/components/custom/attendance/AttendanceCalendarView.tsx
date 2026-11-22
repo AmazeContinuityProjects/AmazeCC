@@ -4,7 +4,75 @@ import { AnimatePresence, m } from "framer-motion";
 import { CheckCircle2, FileText } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";
 import { clickable } from "@/lib/a11y";
+import { DAY_LABELS, DAY_ORDER } from "@/lib/generated/timetable";
 import type { CourseAttendanceHistoryEntry } from "@/types/course";
+
+/**
+ * One memoised lookup for a calendar cell's status fill. `statusTint` is called
+ * for every cell of every month and every re-render, so the branch chain is
+ * resolved once per (variant, tracker mode, status) and cached. The helpers
+ * themselves live at module scope rather than being rebuilt inside the render.
+ *
+ * The dots carry only hue now — the old `shadow-[0_0_…]` neon glow was a second,
+ * decorative signal on top of the tint, and shape + the screen-reader status
+ * already say the same thing without it.
+ */
+type StatusFill = { bg: string; dot: string };
+const FILL_CACHE = new Map<string, StatusFill>();
+
+function statusFill(status: string | undefined, isODTracker: boolean, wide: boolean): StatusFill {
+  const key = `${wide ? "wide" : "compact"}|${isODTracker ? "od" : "std"}|${status ?? ""}`;
+  const cached = FILL_CACHE.get(key);
+  if (cached) return cached;
+
+  const fill: StatusFill = { bg: "", dot: "" };
+  const set = (bg: string, dot: string) => {
+    fill.bg = bg;
+    fill.dot = dot;
+  };
+
+  if (wide) {
+    if (isODTracker) {
+      if (status === "valid od") set("bg-emerald-50/50  dark:bg-emerald-500/10", "bg-emerald-500");
+      else if (status === "wasted od") set("bg-red-50/50  dark:bg-red-500/10", "bg-red-500");
+      else if (status === "partial wasted od") set("bg-amber-50/50  dark:bg-amber-500/10", "bg-amber-500");
+    } else {
+      if (status === "present") set("bg-emerald-50/50  dark:bg-emerald-500/10", "bg-emerald-500");
+      else if (status === "absent") set("bg-red-50/50  dark:bg-red-500/10", "bg-red-500");
+      else if (status === "on duty" || status === "partial od")
+        set("bg-yellow-50/50  dark:bg-amber-500/10", "bg-yellow-500");
+      else if (status && status.includes("half-day")) set("bg-orange-50/50  dark:bg-orange-500/10", "bg-orange-500");
+      else if (status === "partially absent") set("bg-rose-50/50  dark:bg-rose-500/10", "bg-rose-500");
+    }
+  } else if (isODTracker) {
+    if (status === "valid od") set("bg-emerald-500/15 dark:bg-emerald-500/15", "bg-emerald-500");
+    else if (status === "wasted od") set("bg-red-500/15 dark:bg-red-500/15", "bg-red-500");
+    else if (status === "partial wasted od") set("bg-amber-500/15 dark:bg-amber-500/15", "bg-amber-500");
+  } else {
+    if (status === "present") set("bg-emerald-500/15 dark:bg-emerald-500/15", "bg-emerald-500");
+    else if (status === "absent") set("bg-red-500/15 dark:bg-red-500/15", "bg-red-500");
+    else if (status === "on duty" || status === "partial od")
+      set("bg-amber-500/15 dark:bg-amber-500/15", "bg-amber-500");
+    else if (status && status.includes("half-day")) set("bg-orange-500/15 dark:bg-orange-500/15", "bg-orange-500");
+    else if (status === "partially absent") set("bg-rose-500/15 dark:bg-rose-500/15", "bg-rose-500");
+  }
+
+  FILL_CACHE.set(key, fill);
+  return fill;
+}
+
+/** Compact-mode tint; named alias so the call site reads clearly. */
+const statusTint = (status: string | undefined, isODTracker: boolean): StatusFill =>
+  statusFill(status, isODTracker, false);
+
+/** Present: dot. Absent: diamond. On duty: square. Partial or half-day: short bar. */
+function dotShape(status: string | undefined): string {
+  if (!status) return "w-1.5 h-1.5 rounded-full";
+  if (status === "absent" || status === "wasted od") return "w-1.5 h-1.5 rotate-45 rounded-[1px]";
+  if (status === "on duty" || status === "partial od" || status === "valid od") return "w-1.5 h-1.5 rounded-[1px]";
+  if (status.includes("partial") || status.includes("half-day")) return "w-2.5 h-1 rounded-full";
+  return "w-1.5 h-1.5 rounded-full";
+}
 
 export interface AttendanceCalendarViewProps {
   analyzeCalendars?: any[];
@@ -38,7 +106,8 @@ export default function AttendanceCalendarView({
   }, [analyzeCalendars]);
 
   const activeMonth = safeCalendars[activeIdx];
-  const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  // Mon-first weekday headers from the canonical day order/labels.
+  const weekdays = DAY_ORDER.map((d) => DAY_LABELS[d].slice(0, 3));
 
   const monthData = useMemo(() => {
     if (!activeMonth) return null;
@@ -98,51 +167,7 @@ export default function AttendanceCalendarView({
   }
 
   // Compact mode: edge-to-edge squircle date grid. Dates carry their own
-  // coloured circle + mild neon tint — no status words, no per-day actions.
-  const statusTint = (status: string | undefined) => {
-    if (isODTracker) {
-      if (status === "valid od")
-        return {
-          bg: "bg-emerald-500/15 dark:bg-emerald-500/15",
-          dot: "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]",
-        };
-      if (status === "wasted od")
-        return { bg: "bg-red-500/15 dark:bg-red-500/15", dot: "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]" };
-      if (status === "partial wasted od")
-        return {
-          bg: "bg-amber-500/15 dark:bg-amber-500/15",
-          dot: "bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.8)]",
-        };
-      return { bg: "", dot: "" };
-    }
-    if (status === "present")
-      return {
-        bg: "bg-emerald-500/15 dark:bg-emerald-500/15",
-        dot: "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]",
-      };
-    if (status === "absent")
-      return { bg: "bg-red-500/15 dark:bg-red-500/15", dot: "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]" };
-    if (status === "on duty" || status === "partial od")
-      return { bg: "bg-amber-500/15 dark:bg-amber-500/15", dot: "bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.8)]" };
-    if (status && status.includes("half-day"))
-      return {
-        bg: "bg-orange-500/15 dark:bg-orange-500/15",
-        dot: "bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.8)]",
-      };
-    if (status === "partially absent")
-      return { bg: "bg-rose-500/15 dark:bg-rose-500/15", dot: "bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)]" };
-    return { bg: "", dot: "" };
-  };
-
-  // Present: dot. Absent: diamond. On duty: square. Partial or half-day: short bar.
-  const dotShape = (status: string | undefined) => {
-    if (!status) return "w-1.5 h-1.5 rounded-full";
-    if (status === "absent" || status === "wasted od") return "w-1.5 h-1.5 rotate-45 rounded-[1px]";
-    if (status === "on duty" || status === "partial od" || status === "valid od") return "w-1.5 h-1.5 rounded-[1px]";
-    if (status.includes("partial") || status.includes("half-day")) return "w-2.5 h-1 rounded-full";
-    return "w-1.5 h-1.5 rounded-full";
-  };
-
+  // coloured tint + shape-only dot — no status words, no per-day actions.
   if (compact) {
     return (
       <div className="w-full min-w-0 flex flex-col">
@@ -152,7 +177,7 @@ export default function AttendanceCalendarView({
             <button
               key={idx}
               onClick={() => setActiveIdx(idx)}
-              className={`px-3 py-1.5 rounded-xl text-[11px] font-black whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+              className={`px-3 py-1.5 min-h-11 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer shrink-0 active:scale-95 ${
                 idx === activeIdx
                   ? "bg-indigo-600 text-white shadow-xs"
                   : "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400"
@@ -163,8 +188,9 @@ export default function AttendanceCalendarView({
           ))}
         </div>
 
-        {/* Compact date grid */}
-        <div className="w-full">
+        {/* Compact date grid. The weekday header lives inside the same grid, so
+            it scrolls with the cells instead of staying pinned over them. */}
+        <div className="w-full overflow-x-auto hide-scrollbar">
           <AnimatePresence mode="wait">
             <m.div
               key={activeIdx}
@@ -172,12 +198,12 @@ export default function AttendanceCalendarView({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}
               transition={{ duration: 0.2 }}
-              className="w-full grid grid-cols-7 gap-1 text-center"
+              className="w-full min-w-[420px] grid grid-cols-7 gap-1 text-center"
             >
               {weekdays.map((day) => (
                 <div
                   key={day}
-                  className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 py-1"
+                  className="text-xs font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 py-1"
                 >
                   {day.slice(0, 2)}
                 </div>
@@ -190,7 +216,7 @@ export default function AttendanceCalendarView({
               {monthData.daysInMonth.map((dayInfo, i) => {
                 const date = Number(dayInfo.date);
                 const dataObj = monthData.historyMap[date];
-                const tint = statusTint(dataObj?.status);
+                const tint = statusTint(dataObj?.status, isODTracker);
                 return (
                   <div
                     key={date}
@@ -243,7 +269,7 @@ export default function AttendanceCalendarView({
                       </div>
                       <button
                         onClick={(e) => toggleIndividualNote(selectedOverallDate.date, c.courseCode, e)}
-                        className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
+                        className={`flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-11 rounded-lg border text-xs font-semibold transition-all shrink-0 active:scale-95 ${
                           isSecured
                             ? "bg-emerald-100 text-emerald-700   dark:bg-emerald-900/30 dark:text-emerald-400"
                             : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50    dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
@@ -271,7 +297,7 @@ export default function AttendanceCalendarView({
           <button
             key={idx}
             onClick={() => setActiveIdx(idx)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
+            className={`px-4 py-1.5 min-h-11 rounded-lg text-sm font-semibold transition-all whitespace-nowrap active:scale-95 ${
               idx === activeIdx
                 ? "bg-blue-600 text-white shadow-sm"
                 : "bg-gray-100  dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700"
@@ -293,11 +319,11 @@ export default function AttendanceCalendarView({
             transition={{ duration: 0.2 }}
             className="w-full overflow-x-auto hide-scrollbar"
           >
-            <div className="min-w-0 w-full grid grid-cols-7 text-center border-collapse">
+            <div className="w-full min-w-[420px] grid grid-cols-7 text-center border-collapse">
               {weekdays.map((day) => (
                 <div
                   key={day}
-                  className="font-bold py-2 border-b border-gray-100  dark:border-gray-800 text-[10px] tracking-wider uppercase text-gray-500 dark:text-gray-400 bg-gray-55/50  dark:bg-gray-900/40"
+                  className="font-bold py-2 border-b border-gray-100  dark:border-gray-800 text-xs tracking-wider uppercase text-gray-500 dark:text-gray-400 bg-gray-50/50  dark:bg-gray-900/40"
                 >
                   {day}
                 </div>
@@ -316,38 +342,14 @@ export default function AttendanceCalendarView({
                 const status = dataObj?.status;
                 const entry = dataObj?.entry;
 
-                let bgClass = "bg-transparent hover:bg-gray-50/50 dark:hover:bg-gray-900/50";
-                let dotColor = "";
-
-                if (isODTracker) {
-                  if (status === "valid od") {
-                    bgClass = "bg-emerald-50/50  dark:bg-emerald-500/10";
-                    dotColor = "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]";
-                  } else if (status === "wasted od") {
-                    bgClass = "bg-red-50/50  dark:bg-red-500/10";
-                    dotColor = "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]";
-                  } else if (status === "partial wasted od") {
-                    bgClass = "bg-amber-50/50  dark:bg-amber-500/10";
-                    dotColor = "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]";
-                  }
-                } else {
-                  if (status === "present") {
-                    bgClass = "bg-emerald-50/50  dark:bg-emerald-500/10";
-                    dotColor = "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]";
-                  } else if (status === "absent") {
-                    bgClass = "bg-red-50/50  dark:bg-red-500/10";
-                    dotColor = "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]";
-                  } else if (status === "on duty" || status === "partial od") {
-                    bgClass = "bg-yellow-50/50  dark:bg-amber-500/10";
-                    dotColor = "bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.6)]";
-                  } else if (status && status.includes("half-day")) {
-                    bgClass = "bg-orange-50/50  dark:bg-orange-500/10";
-                    dotColor = "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]";
-                  } else if (status === "partially absent") {
-                    bgClass = "bg-rose-50/50  dark:bg-rose-500/10";
-                    dotColor = "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]";
-                  }
-                }
+                // One fill channel per cell: the tinted background. The dot
+                // carries status by hue, and the status itself stays available
+                // to screen readers, so the old coloured status word was a
+                // second, redundant channel. The lookup is memoised at module
+                // scope (see `statusFill`).
+                const tint = statusFill(status, isODTracker, true);
+                const bgClass = tint.bg || "bg-transparent hover:bg-gray-50/50 dark:hover:bg-gray-900/50";
+                const dotColor = tint.dot;
 
                 const isLastCol = (monthData.blanks.length + i + 1) % 7 === 0;
 
@@ -374,7 +376,7 @@ export default function AttendanceCalendarView({
                   >
                     <div className="w-full flex justify-between items-start">
                       <span
-                        className={`text-[11px] sm:text-xs font-semibold ${status ? "text-gray-900  dark:text-gray-100" : "text-gray-500  dark:text-gray-400"}`}
+                        className={`text-xs font-semibold ${status ? "text-gray-900  dark:text-gray-100" : "text-gray-500  dark:text-gray-400"}`}
                       >
                         {date}
                       </span>
@@ -382,27 +384,7 @@ export default function AttendanceCalendarView({
                     </div>
                     {status && (
                       <div className="mt-auto text-left flex flex-col gap-1.5">
-                        <span
-                          className={`text-[10px] font-bold uppercase tracking-wider ${
-                            isODTracker
-                              ? status === "valid od"
-                                ? "text-emerald-600  dark:text-emerald-400"
-                                : status === "wasted od"
-                                  ? "text-red-600  dark:text-red-400"
-                                  : "text-amber-600  dark:text-amber-400"
-                              : status === "present"
-                                ? "text-emerald-600  dark:text-emerald-400"
-                                : status === "absent"
-                                  ? "text-red-600  dark:text-red-400"
-                                  : status.includes("half-day")
-                                    ? "text-orange-600  dark:text-orange-400"
-                                    : status.includes("partially absent")
-                                      ? "text-rose-600  dark:text-rose-400"
-                                      : "text-yellow-600  dark:text-yellow-400"
-                          }`}
-                        >
-                          {status}
-                        </span>
+                        <span className="sr-only">{status}</span>
 
                         {isMissed && exactDateStr && (
                           <button
@@ -411,7 +393,7 @@ export default function AttendanceCalendarView({
                               if (isOverall) toggleNotes(exactDateStr, entry.missedClasses, e);
                               else toggleNotes(exactDateStr);
                             }}
-                            className={`relative hit-expand flex items-center justify-center gap-1 p-1 sm:px-2 sm:py-1 rounded-md border text-[9px] sm:text-[10px] font-semibold transition-all shrink-0 mt-auto ${
+                            className={`relative hit-expand flex items-center justify-center gap-1 p-1 sm:px-2 sm:py-1 rounded-md border text-xs font-semibold transition-all shrink-0 mt-auto ${
                               hasNotes
                                 ? "bg-emerald-50 border border-emerald-200 text-emerald-700    dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
                                 : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50    dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
@@ -457,7 +439,7 @@ export default function AttendanceCalendarView({
                     </div>
                     <button
                       onClick={(e) => toggleIndividualNote(selectedOverallDate.date, c.courseCode, e)}
-                      className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
+                      className={`flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-11 rounded-lg border text-xs font-semibold transition-all shrink-0 active:scale-95 ${
                         isSecured
                           ? "bg-emerald-100 text-emerald-700   dark:bg-emerald-900/30 dark:text-emerald-400"
                           : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50    dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"

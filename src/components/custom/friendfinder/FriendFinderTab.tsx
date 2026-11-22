@@ -67,7 +67,18 @@ import posthog from "posthog-js";
 import { forgetStoredCredentials, SIGNED_OUT_EVENT } from "@/lib/forgetDevice";
 import { getActiveRegNumber } from "@/lib/social/identity";
 import ThemeToggle from "@/components/custom/ThemeToggle";
-import { GHOST_BUTTON, LIST_ROW, LIST_SHELL, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
+import {
+  FOCUS_RING,
+  FOCUS_RING_INSET,
+  FOCUS_RING_OFFSET,
+  GHOST_BUTTON,
+  LIST_ROW,
+  LIST_SHELL,
+  SPINNER_ICON,
+  TEXT_BLOCK,
+  TILE_CARD,
+  TONE_ICON_TILE,
+} from "@/lib/uiTokens";
 import {
   IconButton,
   ListSkeleton,
@@ -116,9 +127,8 @@ export function setCachedFriendFinderState(sem: string, state: ClassmatesState |
   } catch {}
 }
 
-const PRIMARY_BUTTON =
-  "inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-500 hover:bg-indigo-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 text-white font-bold px-5 py-3 text-sm shadow-lg shadow-indigo-500/20 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-const ACTION_BUTTON = `${GHOST_BUTTON} justify-center py-2.5 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`;
+const PRIMARY_BUTTON = `inline-flex items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 text-primary-foreground font-bold px-5 py-3 text-sm shadow-xs transition-all cursor-pointer ${FOCUS_RING} ${FOCUS_RING_OFFSET}`;
+const ACTION_BUTTON = `${GHOST_BUTTON} justify-center py-2.5 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`;
 
 const AVATAR_TONES = ["indigo", "emerald", "amber", "violet", "sky", "red"] as const;
 
@@ -134,7 +144,7 @@ function avatarTone(key: string): string {
 }
 
 function Avatar({ person, size = "md" }: { person: Pick<ClassmatePerson, "handle" | "name">; size?: "sm" | "md" }) {
-  const dims = size === "sm" ? "w-6 h-6 text-[10px]" : "w-10 h-10 text-sm";
+  const dims = size === "sm" ? "w-6 h-6 text-xs" : "w-10 h-10 text-sm";
   return (
     <span
       aria-hidden
@@ -445,8 +455,8 @@ function PersonChip({
             }
           : undefined
       }
-      className={`inline-flex items-center gap-1.5 rounded-2xl border border-border-strong dark:border-border bg-surface pl-1 pr-2.5 py-1 text-xs font-semibold text-text-heading max-w-full ${
-        onClick ? "cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" : ""
+      className={`inline-flex items-center gap-1.5 rounded-2xl border border-border-strong dark:border-border bg-surface pl-1 pr-2.5 py-1 text-xs font-semibold text-text-heading max-w-full ${FOCUS_RING} ${
+        onClick ? "cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors active:scale-95" : ""
       }`}
     >
       <Avatar person={person} size="sm" />
@@ -455,7 +465,7 @@ function PersonChip({
         {person.regNo && isVitRegistrationNumber(person.regNo) ? ` (${person.regNo})` : ""}
       </span>
       {isMarked && markLabel ? (
-        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+        <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
           {markLabel}
         </span>
       ) : null}
@@ -567,7 +577,7 @@ function SectionCard({
           onClick();
         }
       }}
-      className={`px-4 py-4 space-y-3 ${onClick ? "cursor-pointer hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 active:scale-[0.99] transition-all" : ""}`}
+      className={`px-4 py-4 space-y-3 ${FOCUS_RING_INSET} ${onClick ? "cursor-pointer hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 active:scale-[0.99] transition-all" : ""}`}
     >
       <div className="flex items-start gap-3">
         <span
@@ -575,7 +585,7 @@ function SectionCard({
         >
           <BookOpen className="w-4 h-4" />
         </span>
-        <div className="min-w-0 flex-1">
+        <div className={TEXT_BLOCK}>
           <p className="text-sm font-bold text-text-heading leading-snug">
             <span className="font-outfit font-black tracking-tight">{entry.code}</span>
             <span className="text-muted-foreground font-medium"> · </span>
@@ -589,14 +599,14 @@ function SectionCard({
               <UserRound className="w-3 h-3 shrink-0" />
               <span className="truncate">{displayName(entry.faculty)}</span>
             </span>
-            <span className="uppercase tracking-wide text-[10px] font-bold">{entry.type}</span>
+            <span className="uppercase tracking-wide text-xs font-bold">{entry.type}</span>
           </p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0 self-center pl-1">
           <span
             aria-label={`${count} ${count === 1 ? "classmate" : "classmates"}`}
             title={`${count} ${count === 1 ? "classmate" : "classmates"}`}
-            className={`text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-none ${
+            className={`text-2xl sm:text-[32px] font-black font-outfit tracking-tight leading-none tabular-nums ${
               count ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-300 dark:text-zinc-600"
             }`}
           >
@@ -1058,7 +1068,7 @@ export default function FriendFinderTab({
           <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-border-subtle space-y-3">
             <div className="flex items-center gap-3">
               <Avatar person={{ handle: me.handle, name: me.name }} size="md" />
-              <div className="min-w-0 flex-1">
+              <div className={TEXT_BLOCK}>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <h4 className="text-base font-bold text-text-heading truncate">{displayName(me.name)}</h4>
                   {me.source === "registered" ? <VerifiedTick /> : null}
@@ -1071,13 +1081,13 @@ export default function FriendFinderTab({
 
             <div className="grid grid-cols-2 gap-2 pt-1">
               <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900/60 border border-border-subtle/60">
-                <span className="block text-[11px] font-medium text-muted-foreground">Classes Shared</span>
+                <span className="block text-xs font-medium text-muted-foreground">Classes Shared</span>
                 <span className="text-xs font-bold text-text-heading">
                   {me.classIds.length} {me.classIds.length === 1 ? "class" : "classes"}
                 </span>
               </div>
               <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900/60 border border-border-subtle/60">
-                <span className="block text-[11px] font-medium text-muted-foreground">Status</span>
+                <span className="block text-xs font-medium text-muted-foreground">Status</span>
                 <div className="flex items-center gap-1 mt-0.5">
                   <ToneBadge size="sm" tone={me.source === "registered" ? "emerald" : "indigo"}>
                     {me.source === "registered" ? "Verified" : "Planned"}
@@ -1088,12 +1098,12 @@ export default function FriendFinderTab({
 
             {(state.handles?.length ?? 0) > 1 ? (
               <div className="pt-1">
-                <span className="block text-[11px] font-medium text-muted-foreground mb-1.5">Your Social handles</span>
+                <span className="block text-xs font-medium text-muted-foreground mb-1.5">Your Social handles</span>
                 <div className="flex flex-wrap gap-1.5">
                   {state.handles.map((handle) => (
                     <span
                       key={handle}
-                      className="px-2 py-1 rounded-lg bg-white dark:bg-zinc-900/60 border border-border-subtle/60 text-[11px] font-mono text-text-heading"
+                      className="px-2 py-1 rounded-lg bg-white dark:bg-zinc-900/60 border border-border-subtle/60 text-xs font-mono text-text-heading"
                     >
                       {handle}
                     </span>
@@ -1106,7 +1116,7 @@ export default function FriendFinderTab({
           <div className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-border-subtle">
             <div>
               <p className="text-xs font-bold text-text-heading">Visible to classmates</p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {me.discoverable ? "Others in your sections can find you" : "You are hidden from everyone"}
               </p>
             </div>
@@ -1273,14 +1283,14 @@ export default function FriendFinderTab({
                       setSelectedClassId(entry.id);
                     }
                   }}
-                  className={`${LIST_ROW} cursor-pointer hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 transition-all`}
+                  className={`${LIST_ROW} cursor-pointer hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 transition-all active:scale-[0.99] ${FOCUS_RING_INSET}`}
                 >
                   <span
                     className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.indigo}`}
                   >
                     <BookOpen className="w-4 h-4" />
                   </span>
-                  <div className="min-w-0 flex-1">
+                  <div className={TEXT_BLOCK}>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <p className="text-sm font-bold text-text-heading truncate">
                         {`${entry.code} · ${entry.title.replace(/\s+-\s*|-\s+/g, "-")}`}
@@ -1294,7 +1304,7 @@ export default function FriendFinderTab({
                       {entry.type ? (
                         <>
                           <span>·</span>
-                          <span className="uppercase font-bold text-[10px]">{entry.type}</span>
+                          <span className="uppercase font-bold text-xs">{entry.type}</span>
                         </>
                       ) : null}
                     </p>
@@ -1376,7 +1386,7 @@ export default function FriendFinderTab({
             <span className={`w-14 h-14 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.indigo}`}>
               <UsersRound className="w-7 h-7" />
             </span>
-            <h3 className="text-lg sm:text-xl font-black font-outfit tracking-tight text-text-heading">
+            <h3 className="text-xl font-black font-outfit tracking-tight text-text-heading">
               {isDemo ? "Sign in to find your classmates" : "Find who's in your classes"}
             </h3>
             <p className="text-sm text-muted-foreground max-w-sm">
@@ -1440,7 +1450,7 @@ export default function FriendFinderTab({
           >
             <AlertTriangle className="w-7 h-7" />
           </span>
-          <h3 className="text-lg font-black font-outfit tracking-tight text-text-heading">
+          <h3 className="text-xl font-black font-outfit tracking-tight text-text-heading">
             Switch to the upcoming winter course list
           </h3>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">
@@ -1666,19 +1676,19 @@ export default function FriendFinderTab({
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-border-strong dark:border-border">
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
-                  <span className="block text-[11px] font-medium text-muted-foreground">Course Code</span>
+                  <span className="block text-xs font-medium text-muted-foreground">Course Code</span>
                   <span className="text-xs font-bold text-text-heading">{selectedEntry.code}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
-                  <span className="block text-[11px] font-medium text-muted-foreground">Total Credits</span>
+                  <span className="block text-xs font-medium text-muted-foreground">Total Credits</span>
                   <span className="text-xs font-bold text-text-heading">{selectedEntry.credits}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
-                  <span className="block text-[11px] font-medium text-muted-foreground">Type</span>
+                  <span className="block text-xs font-medium text-muted-foreground">Type</span>
                   <span className="text-xs font-bold text-text-heading uppercase">Embedded</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
-                  <span className="block text-[11px] font-medium text-muted-foreground">
+                  <span className="block text-xs font-medium text-muted-foreground">
                     {selectedEntry.classIds.length > 1 ? "Class Numbers" : "Class Number"}
                   </span>
                   <span className="text-xs font-mono font-bold text-text-heading break-all whitespace-normal select-all">
@@ -1722,19 +1732,19 @@ export default function FriendFinderTab({
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-border-strong dark:border-border">
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
-                  <span className="block text-[11px] font-medium text-muted-foreground">Course Code</span>
+                  <span className="block text-xs font-medium text-muted-foreground">Course Code</span>
                   <span className="text-xs font-bold text-text-heading">{selectedEntry.code}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
-                  <span className="block text-[11px] font-medium text-muted-foreground">Credits</span>
+                  <span className="block text-xs font-medium text-muted-foreground">Credits</span>
                   <span className="text-xs font-bold text-text-heading">{selectedEntry.credits}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
-                  <span className="block text-[11px] font-medium text-muted-foreground">Type</span>
+                  <span className="block text-xs font-medium text-muted-foreground">Type</span>
                   <span className="text-xs font-bold text-text-heading uppercase">{selectedEntry.type}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
-                  <span className="block text-[11px] font-medium text-muted-foreground">Class Number</span>
+                  <span className="block text-xs font-medium text-muted-foreground">Class Number</span>
                   <span className="text-xs font-mono font-bold text-text-heading break-all whitespace-normal select-all">
                     {selectedEntry.id}
                   </span>
@@ -1764,10 +1774,10 @@ export default function FriendFinderTab({
                           handlePersonClick(p);
                         }
                       }}
-                      className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0 border-border-subtle cursor-pointer hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 active:scale-[0.99] transition-all"
+                      className={`flex items-center gap-3 px-4 py-3 border-b last:border-b-0 border-border-subtle cursor-pointer hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 active:scale-[0.99] transition-all ${FOCUS_RING_INSET}`}
                     >
                       <Avatar person={p} />
-                      <div className="min-w-0 flex-1">
+                      <div className={TEXT_BLOCK}>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-sm font-bold text-text-heading truncate">
                             {displayName(p.name) || p.handle}
@@ -1855,7 +1865,7 @@ export default function FriendFinderTab({
                 >
                   <Sparkles className="w-6 h-6" />
                 </span>
-                <h3 className="text-lg sm:text-xl font-black font-outfit tracking-tight text-text-heading">
+                <h3 className="text-xl font-black font-outfit tracking-tight text-text-heading">
                   {editing ? "Change what you share" : "See who's in your classes"}
                 </h3>
                 <p className="text-sm text-muted-foreground">
@@ -1894,7 +1904,7 @@ export default function FriendFinderTab({
                   disabled={busy}
                   onClick={publish}
                 >
-                  {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <UsersRound className="w-4 h-4" />}
+                  {busy ? <Loader2 className={SPINNER_ICON} /> : <UsersRound className="w-4 h-4" />}
                   {busy ? "Sharing…" : editing ? "Save and update matches" : "Share and find classmates"}
                 </button>
               </div>
@@ -1971,7 +1981,7 @@ export default function FriendFinderTab({
             >
               <EyeOff className="w-7 h-7" />
             </span>
-            <h3 className="text-lg font-black font-outfit tracking-tight text-text-heading">You&apos;re hidden</h3>
+            <h3 className="text-xl font-black font-outfit tracking-tight text-text-heading">You&apos;re hidden</h3>
             <p className="text-sm text-muted-foreground max-w-sm mx-auto">
               Nobody can see you, and you can&apos;t see anyone either. Your classes are still saved.
             </p>
@@ -1990,14 +2000,14 @@ export default function FriendFinderTab({
               <StatTile
                 label="Classmates"
                 value={uniqueClassmates}
-                sub={<span className="text-[11px] text-muted-foreground">found</span>}
+                sub={<span className="text-xs text-muted-foreground">found</span>}
                 tone="indigo"
                 height="h-24 sm:h-28"
               />
               <StatTile
                 label="Joined"
                 value={state.participants.toLocaleString()}
-                sub={<span className="text-[11px] text-muted-foreground">students</span>}
+                sub={<span className="text-xs text-muted-foreground">students</span>}
                 tone="neutral"
                 height="h-24 sm:h-28"
               />
@@ -2078,10 +2088,10 @@ export default function FriendFinderTab({
                               setSelectedFriend(o);
                             }
                           }}
-                          className={`${LIST_ROW} cursor-pointer hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 active:scale-[0.99] transition-all`}
+                          className={`${LIST_ROW} cursor-pointer hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 active:scale-[0.99] transition-all ${FOCUS_RING_INSET}`}
                         >
                           <Avatar person={o} />
-                          <div className="min-w-0 flex-1">
+                          <div className={TEXT_BLOCK}>
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="text-sm font-bold text-text-heading truncate">
                                 {displayName(o.name) || o.handle}
@@ -2114,7 +2124,7 @@ export default function FriendFinderTab({
                             <span
                               aria-label={`${o.shared} ${o.shared === 1 ? "class" : "classes"} shared`}
                               title={`${o.shared} ${o.shared === 1 ? "class" : "classes"} shared`}
-                              className="text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-none text-indigo-600 dark:text-indigo-400 min-w-[24px] text-right"
+                              className="text-2xl sm:text-[32px] font-black font-outfit tracking-tight leading-none tabular-nums text-indigo-600 dark:text-indigo-400 min-w-[24px] text-right"
                             >
                               {o.shared}
                             </span>
@@ -2150,7 +2160,7 @@ export default function FriendFinderTab({
                   </div>
                 )}
                 {hasVerified ? (
-                  <p className="flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground">
+                  <p className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
                     <VerifiedTick className="w-3.5 h-3.5" /> Verified: registered in VTOP, not just planned
                   </p>
                 ) : null}

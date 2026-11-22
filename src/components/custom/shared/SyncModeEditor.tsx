@@ -1,16 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  ArrowDown,
-  ArrowUp,
-  Copy,
-  Pencil,
-  Play,
-  Plus,
-  Star,
-  Trash2,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Pencil, Play, Plus, Star, Trash2 } from "lucide-react";
 import BottomSheet from "./BottomSheet";
 import { Switch } from "./primitives";
 import { FIELD_INPUT } from "@/lib/uiTokens";
@@ -84,12 +75,7 @@ export interface SyncModeEditorContentProps {
  * The full editor UI without any overlay chrome, so the settings page can
  * render it inline while the sheet wrapper stays for modal use.
  */
-export function SyncModeEditorContent({
-  onChanged,
-  onRun,
-  defaultId,
-  onSetDefault,
-}: SyncModeEditorContentProps) {
+export function SyncModeEditorContent({ onChanged, onRun, defaultId, onSetDefault }: SyncModeEditorContentProps) {
   const [customs, setCustoms] = useState<SyncMode[]>(() => loadCustomModes());
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -144,7 +130,15 @@ export function SyncModeEditorContent({
 
   const startCreate = () => {
     setError(null);
-    setDraft({ id: null, label: "", description: "", steps: [{ op: "attendanceMarks" }], bulkSel: [], bulkBg: true, bulkPos: -1 });
+    setDraft({
+      id: null,
+      label: "",
+      description: "",
+      steps: [{ op: "attendanceMarks" }],
+      bulkSel: [],
+      bulkBg: true,
+      bulkPos: -1,
+    });
   };
 
   const startEdit = (m: SyncMode) => {
@@ -247,7 +241,11 @@ export function SyncModeEditorContent({
   // Combined order list: op steps with the bulk pseudo-row at its position.
   const ordered: Array<{ key: string; kind: "op" | "bulk"; step?: SyncModeStep }> = (() => {
     if (!draft) return [];
-    const rows: Array<{ key: string; kind: "op" | "bulk"; step?: SyncModeStep }> = draft.steps.map((s, i) => ({ key: `${s.op}-${i}`, kind: "op", step: s }));
+    const rows: Array<{ key: string; kind: "op" | "bulk"; step?: SyncModeStep }> = draft.steps.map((s, i) => ({
+      key: `${s.op}-${i}`,
+      kind: "op",
+      step: s,
+    }));
     if (draft.bulkSel.length > 0) {
       const at = draft.bulkPos >= 0 ? Math.min(draft.bulkPos, rows.length) : rows.length;
       rows.splice(at, 0, { key: "__bulk", kind: "bulk" as const });
@@ -309,7 +307,7 @@ export function SyncModeEditorContent({
       <div className="flex justify-end">
         <button
           onClick={startCreate}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold transition-colors cursor-pointer shrink-0"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors cursor-pointer shrink-0"
         >
           <Plus size={12} /> New
         </button>
@@ -340,7 +338,7 @@ export function SyncModeEditorContent({
           <div className="max-h-[220px] overflow-y-auto space-y-3 pr-0.5">
             {grouped.map(([cat, list]) => (
               <div key={cat}>
-                <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-500 mb-1">
+                <p className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-gray-500 mb-1">
                   {CATEGORY_LABEL[cat]}
                 </p>
                 <div className="space-y-1">
@@ -357,7 +355,7 @@ export function SyncModeEditorContent({
                         }`}
                       >
                         <span
-                          className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-[10px] font-black ${
+                          className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-xs font-black ${
                             checked
                               ? "bg-blue-600 border-blue-600 text-white"
                               : "border-slate-300 dark:border-zinc-700 text-transparent"
@@ -367,24 +365,22 @@ export function SyncModeEditorContent({
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-bold text-slate-800 dark:text-zinc-200 truncate">
+                            <span className="text-xs font-bold text-slate-800 dark:text-zinc-200 truncate">
                               {o.label}
                             </span>
-                            <code className="text-[10px] font-mono px-1 py-px rounded bg-slate-200/70 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 shrink-0">
+                            <code className="text-xs font-mono px-1 py-px rounded bg-slate-200/70 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 shrink-0">
                               {o.name}
                             </code>
-                            <span
-                              className={`text-[10px] font-black px-1 py-px rounded shrink-0 ${AUTH_BADGE[o.auth]}`}
-                            >
+                            <span className={`text-xs font-black px-1 py-px rounded shrink-0 ${AUTH_BADGE[o.auth]}`}>
                               {AUTH_LABEL[o.auth]}
                             </span>
                           </span>
-                          <span className="block text-[9px] text-slate-500 dark:text-gray-500 truncate">
+                          <span className="block text-xs text-slate-500 dark:text-gray-500 truncate">
                             {o.description}
                           </span>
                         </span>
                         <span
-                          className={`text-[10px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-md shrink-0 ${COST_CHIP[o.cost]}`}
+                          className={`text-xs font-black uppercase tracking-wide px-1.5 py-0.5 rounded-md shrink-0 ${COST_CHIP[o.cost]}`}
                         >
                           {o.cost}
                         </span>
@@ -398,19 +394,19 @@ export function SyncModeEditorContent({
             {visibleEndpoints.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-500">
+                  <p className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-gray-500">
                     Additional records · bulk endpoints ({bulkSet.size}/{BULK_ENDPOINT_META.length})
                   </p>
                   <div className="flex gap-1">
                     <button
                       onClick={selectAllEndpoints}
-                      className="text-[9px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                      className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                     >
                       All
                     </button>
                     <button
                       onClick={clearEndpoints}
-                      className="text-[9px] font-bold text-slate-400 hover:underline cursor-pointer"
+                      className="text-xs font-bold text-slate-400 hover:underline cursor-pointer"
                     >
                       Clear
                     </button>
@@ -430,7 +426,7 @@ export function SyncModeEditorContent({
                         }`}
                       >
                         <span
-                          className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-[10px] font-black ${
+                          className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-xs font-black ${
                             checked
                               ? "bg-violet-600 border-violet-600 text-white"
                               : "border-slate-300 dark:border-zinc-700 text-transparent"
@@ -440,14 +436,14 @@ export function SyncModeEditorContent({
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-bold text-slate-800 dark:text-zinc-200 truncate">
+                            <span className="text-xs font-bold text-slate-800 dark:text-zinc-200 truncate">
                               {m.label}
                             </span>
-                            <code className="text-[10px] font-mono px-1 py-px rounded bg-slate-200/70 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 shrink-0">
+                            <code className="text-xs font-mono px-1 py-px rounded bg-slate-200/70 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 shrink-0">
                               bulk:{m.endpoint}
                             </code>
                           </span>
-                          <span className="block text-[9px] text-slate-500 dark:text-gray-500 truncate">
+                          <span className="block text-xs text-slate-500 dark:text-gray-500 truncate">
                             {m.description}
                           </span>
                         </span>
@@ -461,9 +457,18 @@ export function SyncModeEditorContent({
 
           {ordered.length > 0 && (
             <div>
-              <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-500 mb-1">
+              <p className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-gray-500 mb-1">
                 Order & background ({ordered.length} steps ·{" "}
-                {estimateModeCost({ id: "", label: "", description: "", builtIn: false, steps: collapseBulkSteps(draft.steps, draft.bulkSel, draft.bulkPos) }).label})
+                {
+                  estimateModeCost({
+                    id: "",
+                    label: "",
+                    description: "",
+                    builtIn: false,
+                    steps: collapseBulkSteps(draft.steps, draft.bulkSel, draft.bulkPos),
+                  }).label
+                }
+                )
               </p>
               <div className="space-y-1 max-h-[140px] overflow-y-auto">
                 {ordered.map((row, i) =>
@@ -472,11 +477,11 @@ export function SyncModeEditorContent({
                       key={row.key}
                       className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl bg-violet-500/5 border border-violet-500/20"
                     >
-                      <span className="text-[9px] font-black text-slate-400 w-4 shrink-0">{i + 1}</span>
-                      <span className="text-[11px] font-bold text-slate-700 dark:text-zinc-300 flex-1 truncate">
+                      <span className="text-xs font-black text-slate-400 w-4 shrink-0">{i + 1}</span>
+                      <span className="text-xs font-bold text-slate-700 dark:text-zinc-300 flex-1 truncate">
                         Additional records ({draft.bulkSel.length} endpoints)
                       </span>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">bg</span>
+                      <span className="text-xs font-bold text-slate-400 uppercase">bg</span>
                       <Switch checked={draft.bulkBg} onCheckedChange={(v) => setDraft({ ...draft, bulkBg: !!v })} />
                       <button
                         onClick={() => moveRow(i, -1)}
@@ -500,11 +505,11 @@ export function SyncModeEditorContent({
                       key={row.key}
                       className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800"
                     >
-                      <span className="text-[9px] font-black text-slate-400 w-4 shrink-0">{i + 1}</span>
-                      <span className="text-[11px] font-bold text-slate-700 dark:text-zinc-300 flex-1 truncate">
+                      <span className="text-xs font-black text-slate-400 w-4 shrink-0">{i + 1}</span>
+                      <span className="text-xs font-bold text-slate-700 dark:text-zinc-300 flex-1 truncate">
                         {getOpLabel(row.step!.op)}
                       </span>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">bg</span>
+                      <span className="text-xs font-bold text-slate-400 uppercase">bg</span>
                       <Switch
                         checked={!!row.step!.background}
                         onCheckedChange={(v) => {
@@ -536,7 +541,7 @@ export function SyncModeEditorContent({
             </div>
           )}
 
-          {error && <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400">{error}</p>}
+          {error && <p className="text-xs font-bold text-rose-600 dark:text-rose-400">{error}</p>}
 
           <div className="flex gap-2">
             <button
@@ -560,7 +565,7 @@ export function SyncModeEditorContent({
         <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto">
           {customs.length > 0 && (
             <div>
-              <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-500 mb-1">
+              <p className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-gray-500 mb-1">
                 Custom
               </p>
               <div className="space-y-1.5">
@@ -570,10 +575,8 @@ export function SyncModeEditorContent({
                     className="flex items-center gap-1 px-2.5 py-2 rounded-xl bg-indigo-500/5 border border-indigo-500/20"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-bold text-slate-800 dark:text-zinc-200 truncate">
-                        {m.label}
-                      </p>
-                      <p className="text-[9px] text-slate-500 dark:text-gray-500 truncate">
+                      <p className="text-xs font-bold text-slate-800 dark:text-zinc-200 truncate">{m.label}</p>
+                      <p className="text-xs text-slate-500 dark:text-gray-500 truncate">
                         {m.steps.length} ops · {estimateModeCost(m).label}
                       </p>
                     </div>
@@ -611,7 +614,7 @@ export function SyncModeEditorContent({
           )}
 
           <div>
-            <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-500 mb-1">
+            <p className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-gray-500 mb-1">
               Built-in
             </p>
             <div className="space-y-1.5">
@@ -621,10 +624,8 @@ export function SyncModeEditorContent({
                   className="flex items-center gap-1 px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-bold text-slate-800 dark:text-zinc-200 truncate">
-                      {m.label}
-                    </p>
-                    <p className="text-[9px] text-slate-500 dark:text-gray-500 truncate">
+                    <p className="text-xs font-bold text-slate-800 dark:text-zinc-200 truncate">{m.label}</p>
+                    <p className="text-xs text-slate-500 dark:text-gray-500 truncate">
                       {m.description} · {m.steps.length} ops
                     </p>
                   </div>
@@ -685,12 +686,7 @@ export default function SyncModeEditor({
       closeLabel="Close sync mode editor"
     >
       <div className="relative">
-        <SyncModeEditorContent
-          onChanged={onChanged}
-          onRun={onRun}
-          defaultId={defaultId}
-          onSetDefault={onSetDefault}
-        />
+        <SyncModeEditorContent onChanged={onChanged} onRun={onRun} defaultId={defaultId} onSetDefault={onSetDefault} />
       </div>
     </BottomSheet>
   );

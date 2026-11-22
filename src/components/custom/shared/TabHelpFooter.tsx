@@ -366,7 +366,7 @@ export default function TabHelpFooter({ tabId }: { tabId: string }) {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/90 border border-zinc-200/80 dark:border-zinc-700/80 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all cursor-pointer shadow-2xs active:scale-95"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/90 border border-zinc-200/80 dark:border-zinc-700/80 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all cursor-pointer shadow-2xs active:scale-95"
         title={`Open detailed step-by-step guide for ${guide.tabName}`}
       >
         <HelpCircle className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
@@ -399,14 +399,14 @@ export default function TabHelpFooter({ tabId }: { tabId: string }) {
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-zinc-900 dark:text-white font-outfit">{item.name}</h4>
-                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">{item.description}</p>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">{item.description}</p>
                       </div>
                     </div>
 
                     {/* Step-by-Step Breakdown */}
                     {Array.isArray(item.steps) && item.steps.length > 0 && (
-                      <div className="p-3 rounded-xl bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800 space-y-2 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                      <div className="p-3 rounded-xl bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800 space-y-2 text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                        <span className="text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
                           <ListOrdered className="w-3 h-3" /> Step-by-Step Instructions:
                         </span>
                         {item.steps.map((step, sIdx) => (

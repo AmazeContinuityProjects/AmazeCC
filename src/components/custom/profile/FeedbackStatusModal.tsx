@@ -1,4 +1,5 @@
 "use client";
+import { TEXT_BLOCK } from "@/lib/uiTokens";
 import { useState, useEffect } from "react";
 import { Card, Badge } from "../shared";
 import BottomSheet from "../shared/BottomSheet";
@@ -131,7 +132,7 @@ export default function FeedbackStatusModal({ isOpen, onClose, loginToVTOP }: Pr
                                 key={i}
                                 className="flex items-center justify-between p-3 rounded-xl bg-white/50  dark:bg-gray-800/50 border border-gray-100  dark:border-gray-700"
                               >
-                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className={`flex items-center gap-3 ${TEXT_BLOCK}`}>
                                   <BookOpen className="w-4 h-4 text-gray-400 shrink-0" />
                                   <p className="text-sm font-medium text-gray-800  dark:text-gray-200 truncate">
                                     {row.feedbackType || "N/A"}

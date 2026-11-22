@@ -91,9 +91,10 @@ describe("PaperScannerPage", () => {
     render(<PaperScannerPage />);
 
     expect(screen.getByRole("heading", { name: "Paper Scanner" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Scan paper" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "System Camera" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Import image" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Scan with camera" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "More ways to add" }));
+    expect(screen.getByRole("button", { name: "Use device camera" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Choose from photos" })).toBeTruthy();
 
     expect(await screen.findByText("No scans yet")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Scan your first paper" })).toBeTruthy();
@@ -153,18 +154,20 @@ describe("PaperScannerPage", () => {
   it("enters full-screen camera mode with framing guide and system camera option", async () => {
     render(<PaperScannerPage />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Scan paper" }));
+    fireEvent.click(screen.getByRole("button", { name: "Scan with camera" }));
 
     // Camera component is mounted in full-screen mode
     expect(await screen.findByText("Scan Page 1")).toBeTruthy();
-    expect(screen.getByText("System Cam")).toBeTruthy();
-    expect(screen.getByText("Gallery")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Capture page" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Scan with camera" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "More ways" }));
+    // The same label appears in the disclosure and the hidden input's label.
+    expect(screen.getAllByText("Use device camera").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Choose from photos").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Close camera" })).toBeTruthy();
 
     // Closing camera returns to library
     fireEvent.click(screen.getByRole("button", { name: "Close camera" }));
-    expect(await screen.findByRole("button", { name: "Scan paper" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Scan with camera" })).toBeTruthy();
   });
 
   it("imports image from gallery into editor and opens add page sheet", async () => {
@@ -186,8 +189,8 @@ describe("PaperScannerPage", () => {
     // Clicking Add page opens the Add Document Page sheet
     fireEvent.click(screen.getByRole("button", { name: "Add page" }));
     expect(await screen.findByText("Add Document Page")).toBeTruthy();
-    expect(screen.getByText("Live In-App Scanner")).toBeTruthy();
-    expect(screen.getByText("System Camera / Scanner")).toBeTruthy();
-    expect(screen.getByText("Photo Gallery / Files")).toBeTruthy();
+    expect(screen.getByText("Scan with camera")).toBeTruthy();
+    expect(screen.getByText("Use device camera")).toBeTruthy();
+    expect(screen.getByText("Choose from photos")).toBeTruthy();
   });
 });

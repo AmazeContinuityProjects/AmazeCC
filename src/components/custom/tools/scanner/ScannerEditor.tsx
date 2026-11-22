@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Maximize2, Plus, RotateCcw, RotateCw, ScanLine, Sparkles } from "lucide-react";
-import { detectQuad, fitWithin, fullFrameQuad, rotateQuad90, rotateRaster90, scaleQuad } from "@/lib/scanner/imageOps";
+import { fitWithin, fullFrameQuad, rotateQuad90, rotateRaster90, scaleQuad } from "@/lib/scanner/imageOps";
+import { detectQuadAsync } from "@/lib/scanner/scannerWorkerBridge";
 import { rasterToDataUrl } from "@/lib/scanner/rasterIO";
 import type { CleanupMode, Quad, Raster } from "@/lib/scanner/types";
 
@@ -39,11 +40,15 @@ const CLEANUP_OPTIONS: readonly { value: CleanupMode; label: string; desc: strin
 
 const clamp = (v: number, max: number) => Math.min(max, Math.max(0, v));
 
-/** Best-effort page quad: detect on a probe, scale back, never throw. */
-function autoQuad(raster: Raster): Quad {
+/**
+ * Best-effort page quad: detect on a probe through the shared worker, scale
+ * back, never throw. Detection is a hint, not a gate — a failure falls back to
+ * the full frame so the student can still drag the corners by hand.
+ */
+async function autoQuad(raster: Raster): Promise<Quad> {
   try {
     const probe = raster.width > 1280 || raster.height > 1280 ? fitWithin(raster, 1280) : raster;
-    const found = detectQuad(probe);
+    const found = await detectQuadAsync(probe);
     if (found) return scaleQuad(found, raster.width / probe.width, raster.height / probe.height);
   } catch {
     /* detection is a hint, not a gate */
@@ -79,6 +84,8 @@ export default function ScannerEditor({
   const wrapRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const dragCorner = useRef<Corner | null>(null);
+  /** A late worker reply must not repaint a page the student already left. */
+  const aliveRef = useRef(true);
 
   const [mounted, setMounted] = useState(false);
   const [stageBounds, setStageBounds] = useState<{ width: number; height: number } | null>(null);
@@ -89,6 +96,10 @@ export default function ScannerEditor({
 
   useEffect(() => {
     setMounted(true);
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+    };
   }, []);
 
   // Measure stage size to guarantee subpixel aspect-ratio accuracy
@@ -114,9 +125,11 @@ export default function ScannerEditor({
     setDetecting(true);
     let cancelled = false;
     const id = window.setTimeout(() => {
-      if (cancelled) return;
-      setQuad(autoQuad(initialRaster));
-      setDetecting(false);
+      void autoQuad(initialRaster).then((found) => {
+        if (cancelled || !aliveRef.current) return;
+        setQuad(found);
+        setDetecting(false);
+      });
     }, 10);
     return () => {
       cancelled = true;
@@ -128,10 +141,11 @@ export default function ScannerEditor({
 
   const redetect = useCallback(() => {
     setDetecting(true);
-    window.setTimeout(() => {
-      setQuad(autoQuad(raster));
+    void autoQuad(raster).then((found) => {
+      if (!aliveRef.current) return;
+      setQuad(found);
       setDetecting(false);
-    }, 10);
+    });
   }, [raster]);
 
   const resetFullFrame = useCallback(() => {
@@ -180,6 +194,13 @@ export default function ScannerEditor({
       (e.currentTarget as Element).releasePointerCapture?.(e.pointerId);
     } catch {}
   };
+
+  // Losing capture to a scroll, a second finger, or window blur must re-arm the
+  // handle for the next drag instead of leaving dragCorner stuck.
+  const cancelDrag = useCallback(() => {
+    dragCorner.current = null;
+    setActiveCorner(null);
+  }, []);
 
   const onHandleKeyDown = (corner: Corner) => (e: React.KeyboardEvent) => {
     const step = e.shiftKey ? 10 : 1;
@@ -239,12 +260,12 @@ export default function ScannerEditor({
   return createPortal(
     <div className="fixed inset-0 z-[100] flex flex-col bg-zinc-950 text-white select-none overflow-hidden touch-none h-[100dvh] w-screen">
       {/* ── Top Bar ── */}
-      <div className="shrink-0 flex items-center justify-between px-4 py-2.5 bg-zinc-900/95 backdrop-blur-md border-b border-white/10 z-20">
+      <div className="shrink-0 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top,0px)+0.625rem)] pb-2.5 bg-zinc-900/95 backdrop-blur-md border-b border-white/10 z-20">
         <button
           type="button"
           onClick={onRetake}
           title="Discard this capture and reopen the camera"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-bold transition-all cursor-pointer"
+          className="relative hit-expand flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-bold transition-all cursor-pointer"
         >
           <RotateCcw className="h-3.5 w-3.5" />
           <span>Retake</span>
@@ -255,7 +276,7 @@ export default function ScannerEditor({
             {pageCount > 1 ? `Crop · Page ${pageCount}` : "Crop & Align"}
           </span>
           {detecting && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-indigo-400 bg-indigo-500/15 border border-indigo-500/30 px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 text-xs font-extrabold text-indigo-400 bg-indigo-500/15 border border-indigo-500/30 px-2 py-0.5 rounded-full">
               <Sparkles className="h-3 w-3 animate-spin" />
               Auto
             </span>
@@ -267,16 +288,16 @@ export default function ScannerEditor({
             type="button"
             onClick={handleRotate}
             title="Rotate 90 degrees clockwise"
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-bold transition-all cursor-pointer"
+            className="relative hit-expand flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-bold transition-all cursor-pointer"
           >
             <RotateCw className="h-3.5 w-3.5" />
-            <span className="text-[11px]">90°</span>
+            <span className="text-xs">90°</span>
           </button>
           <button
             type="button"
             onClick={redetect}
             title="Auto-detect page edges"
-            className="flex items-center justify-center p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-all cursor-pointer"
+            className="relative hit-expand flex items-center justify-center p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-all cursor-pointer"
           >
             <Sparkles className="h-4 w-4 text-indigo-400" />
           </button>
@@ -284,7 +305,7 @@ export default function ScannerEditor({
             type="button"
             onClick={resetFullFrame}
             title="Reset to full frame"
-            className="flex items-center justify-center p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-all cursor-pointer"
+            className="relative hit-expand flex items-center justify-center p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-all cursor-pointer"
           >
             <Maximize2 className="h-4 w-4 text-zinc-300" />
           </button>
@@ -298,7 +319,7 @@ export default function ScannerEditor({
       >
         <div
           ref={wrapRef}
-          className="relative touch-none select-none overflow-hidden rounded-xl shadow-2xl border border-white/10 bg-black flex items-center justify-center"
+          className="relative touch-none select-none overflow-hidden rounded-xl border border-white/10 bg-black flex items-center justify-center"
           style={boxStyle}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -352,8 +373,10 @@ export default function ScannerEditor({
                 onPointerMove={onDragMove}
                 onPointerUp={endDrag}
                 onPointerCancel={endDrag}
+                onLostPointerCapture={cancelDrag}
+                onBlur={cancelDrag}
                 onKeyDown={onHandleKeyDown(corner)}
-                className="absolute z-20 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none items-center justify-center active:cursor-grabbing focus-visible:outline-none"
+                className="absolute z-20 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none items-center justify-center active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 style={{
                   left: `${(quad[corner].x / raster.width) * 100}%`,
                   top: `${(quad[corner].y / raster.height) * 100}%`,
@@ -361,10 +384,8 @@ export default function ScannerEditor({
               >
                 {/* Visual handle */}
                 <span
-                  className={`rounded-full border-2 border-white shadow-2xl transition-all ${
-                    isDragging
-                      ? "h-6 w-6 bg-indigo-500 ring-4 ring-indigo-400/50 scale-125"
-                      : "h-4.5 w-4.5 bg-indigo-600 hover:scale-115 ring-2 ring-black/40"
+                  className={`rounded-full border-2 border-white transition-colors ${
+                    isDragging ? "h-6 w-6 bg-indigo-500 ring-2 ring-indigo-400/50" : "h-4.5 w-4.5 bg-indigo-600"
                   }`}
                 />
               </button>
@@ -374,7 +395,7 @@ export default function ScannerEditor({
           {/* Precision Magnifying Loupe while dragging */}
           {activeCorner && wrapRef.current && (
             <div
-              className={`pointer-events-none absolute z-30 flex h-26 w-26 -translate-x-1/2 items-center justify-center overflow-hidden rounded-full border-2 border-white shadow-[0_12px_36px_rgba(0,0,0,0.85)] ring-4 ring-indigo-500/40 bg-zinc-950 ${
+              className={`pointer-events-none absolute z-30 flex h-26 w-26 -translate-x-1/2 items-center justify-center overflow-hidden rounded-full border-2 border-white ring-2 ring-indigo-500/40 bg-zinc-950 ${
                 flipLoupeBelow ? "translate-y-6" : "-translate-y-28"
               }`}
               style={{
@@ -400,7 +421,7 @@ export default function ScannerEditor({
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                 <span className="h-full w-px bg-indigo-400/70" />
                 <span className="absolute w-full h-px bg-indigo-400/70" />
-                <span className="h-2 w-2 rounded-full border border-white bg-indigo-500 shadow-md" />
+                <span className="h-2 w-2 rounded-full border border-white bg-indigo-500" />
               </div>
             </div>
           )}
@@ -408,7 +429,7 @@ export default function ScannerEditor({
       </div>
 
       {/* ── Bottom Controls ── */}
-      <div className="shrink-0 bg-zinc-900/95 backdrop-blur-md border-t border-white/10 px-4 pt-3 pb-6 sm:pb-4 space-y-3 z-20">
+      <div className="shrink-0 bg-zinc-900/95 backdrop-blur-md border-t border-white/10 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] sm:pb-4 space-y-3 z-20">
         {/* Row 1: Cleanup Enhancement Modes */}
         <div className="flex items-center justify-center gap-1.5 sm:gap-2">
           {CLEANUP_OPTIONS.map((opt) => {
@@ -421,7 +442,7 @@ export default function ScannerEditor({
                 title={opt.desc}
                 className={`flex-1 py-2 px-2.5 rounded-xl text-center text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 border ${
                   isSelected
-                    ? "bg-indigo-600 text-white border-indigo-500 shadow-md ring-2 ring-indigo-400/30"
+                    ? "bg-indigo-600 text-white border-indigo-500"
                     : "bg-white/5 text-zinc-300 border-white/10 hover:bg-white/10 hover:text-white"
                 }`}
               >
@@ -445,7 +466,7 @@ export default function ScannerEditor({
           </button>
 
           {pageCount > 1 && (
-            <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400 px-2">
+            <span className="text-xs font-black uppercase tracking-wider text-zinc-400 px-2">
               {pageCount} pages ready
             </span>
           )}
@@ -454,7 +475,7 @@ export default function ScannerEditor({
             type="button"
             onClick={() => onConfirm(quad, raster)}
             disabled={busy}
-            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black shadow-lg transition-all cursor-pointer disabled:opacity-50 min-w-[130px]"
+            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black transition-colors cursor-pointer disabled:opacity-50 min-w-[130px]"
           >
             <ScanLine className="h-4 w-4" />
             <span>{busy ? "Processing…" : `Scan ${pageCount} ${pageCount === 1 ? "page" : "pages"}`}</span>

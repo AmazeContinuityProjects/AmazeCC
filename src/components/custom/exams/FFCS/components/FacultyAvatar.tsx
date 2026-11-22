@@ -40,10 +40,10 @@ export function VitfacReviewPill({
       type="button"
       onClick={onClick}
       title={`vitfac rating: ${review.wPct}% W (${review.reviews} reviews). Click to view breakdown.`}
-      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-bold transition-all cursor-pointer shrink-0 relative hit-expand touch-press active:scale-[0.97] ${colorClass} ${className}`.trim()}
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[12px] font-bold transition-all cursor-pointer shrink-0 relative hit-expand touch-press active:scale-[0.97] ${colorClass} ${className}`.trim()}
     >
       <span>{review.wPct}% W</span>
-      <span className="text-[10px] opacity-70">({review.reviews})</span>
+      <span className="text-[12px] opacity-70 tabular-nums">({review.reviews})</span>
     </button>
   );
 }
@@ -105,7 +105,7 @@ export function FacultyAvatar({
   const effectiveUrl = sourceUrl && !failedUrls.includes(sourceUrl) ? sourceUrl : null;
 
   const sizeClasses = {
-    xs: "w-6 h-6 rounded-md text-[10px]",
+    xs: "w-6 h-6 rounded-md text-[12px]",
     sm: "w-9 h-9 rounded-xl text-xs",
     md: "w-11 h-11 rounded-2xl text-sm",
     lg: "w-14 h-14 rounded-2xl text-base",

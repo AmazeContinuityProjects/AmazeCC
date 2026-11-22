@@ -40,7 +40,11 @@ export default function LastSynced({ ops, className = "" }: { ops: readonly stri
       try {
         // Loaded on demand so every PageShell does not pull in the engine.
         const { runPageSync } = await import("@/lib/sync-engine/single-sync");
-        await runPageSync({ title: label, steps: [{ op: failure.op, args: failure.args }], doneLine: `${label} updated` });
+        await runPageSync({
+          title: label,
+          steps: [{ op: failure.op, args: failure.args }],
+          doneLine: `${label} updated`,
+        });
       } catch {
         /* the sync sheet already shows the error; the line stays until a success */
       } finally {
@@ -49,7 +53,7 @@ export default function LastSynced({ ops, className = "" }: { ops: readonly stri
     };
     return (
       <p
-        className={`mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] font-medium text-rose-600 dark:text-rose-400 ${className}`.trim()}
+        className={`mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs font-medium text-rose-600 dark:text-rose-400 ${className}`.trim()}
         title={failure.message}
       >
         <AlertCircle className="h-3 w-3 shrink-0" aria-hidden="true" />
@@ -72,7 +76,7 @@ export default function LastSynced({ ops, className = "" }: { ops: readonly stri
   const stale = now.getTime() - at! > STALE_AFTER_MS;
   return (
     <p
-      className={`mt-1 inline-flex items-center gap-1.5 text-[11px] font-medium ${
+      className={`mt-1 inline-flex items-center gap-1.5 text-xs font-medium ${
         stale ? "text-amber-600 dark:text-amber-400" : "text-text-muted"
       } ${className}`.trim()}
       title={`Last synced ${new Date(at!).toLocaleString()}`}

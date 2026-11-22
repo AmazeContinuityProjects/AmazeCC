@@ -12,6 +12,7 @@
  * status dot, or a tone-mapped number. Everything else is zinc.
  */
 
+import { BADGE_MD } from "@/lib/uiTokens";
 import React from "react";
 import { ChevronRight, Pencil, Trash2, Users } from "lucide-react";
 import { CHIP, LIST_ROW, TONE_BADGE, TONE_ICON_TILE, TONE_TEXT } from "@/lib/libraries/ui";
@@ -45,7 +46,7 @@ function Avatar({ name, tone = "indigo", children }: { name: string; tone?: stri
   return (
     <span className="relative shrink-0">
       <span
-        className={`w-10 h-10 rounded-2xl flex items-center justify-center text-[11px] font-black font-outfit border ${TONE_ICON_TILE[tone] ?? TONE_ICON_TILE.indigo}`}
+        className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black font-outfit border ${TONE_ICON_TILE[tone] ?? TONE_ICON_TILE.indigo}`}
       >
         {initials(name)}
       </span>
@@ -140,11 +141,7 @@ export function PairRow({
         />
       </Avatar>
       <ListRowText title={name} subtitle={`${handle} · paired ${relativePublished(createdAt)}`} />
-      <span
-        className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${
-          visibility === "full" ? TONE_BADGE.emerald : TONE_BADGE.zinc
-        }`}
-      >
+      <span className={`${BADGE_MD} shrink-0 ${visibility === "full" ? TONE_BADGE.emerald : TONE_BADGE.zinc}`}>
         {visibility === "full" ? "Full" : "Coarse"}
       </span>
       <button
@@ -254,7 +251,7 @@ export function GroupRow({
         {!empty && commonFreeHours !== undefined && (
           <span className="text-right shrink-0">
             <span className={`block text-sm font-black font-outfit ${TONE_TEXT[tone] ?? ""}`}>{commonFreeHours}h</span>
-            <span className="block text-[9px] font-extrabold uppercase text-zinc-400 dark:text-zinc-500 leading-none">
+            <span className="block text-xs font-extrabold uppercase text-zinc-400 dark:text-zinc-500 leading-none">
               common
             </span>
           </span>

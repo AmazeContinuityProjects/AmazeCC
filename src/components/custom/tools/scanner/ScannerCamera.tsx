@@ -2,7 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AlertTriangle, Camera, ImageUp, RotateCw, Smartphone, VideoOff, X, Zap, ZapOff } from "lucide-react";
+import {
+  AlertTriangle,
+  Camera,
+  ChevronDown,
+  ChevronUp,
+  ImageUp,
+  RotateCw,
+  Smartphone,
+  VideoOff,
+  X,
+  Zap,
+  ZapOff,
+} from "lucide-react";
 import Button from "@/components/custom/shared/Button";
 import { captureFrame, decodeToRaster } from "@/lib/scanner/rasterIO";
 import type { Raster } from "@/lib/scanner/types";
@@ -50,6 +62,8 @@ export default function ScannerCamera({
   const [hasTorch, setHasTorch] = useState(false);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [mounted, setMounted] = useState(false);
+  /** Alternate capture paths live behind one disclosure under the shutter. */
+  const [showMoreWays, setShowMoreWays] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -199,7 +213,7 @@ export default function ScannerCamera({
       disabled={busy}
       icon={<ImageUp className="h-4 w-4" />}
     >
-      Import image
+      Choose from photos
     </Button>
   );
 
@@ -208,18 +222,18 @@ export default function ScannerCamera({
   return createPortal(
     <div className="fixed inset-0 z-[100] flex flex-col bg-black text-white select-none overflow-hidden touch-none h-[100dvh] w-screen">
       {/* ── Top Bar (Fixed height shrink-0) ── */}
-      <div className="shrink-0 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/90 via-black/60 to-transparent z-20">
+      <div className="shrink-0 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-3 bg-gradient-to-b from-black/90 via-black/60 to-transparent z-20">
         <button
           type="button"
           onClick={onCancel}
           aria-label="Close camera"
-          className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
           <X className="h-5 w-5" />
         </button>
 
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-black/60 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-white backdrop-blur-md border border-white/15">
+          <span className="rounded-full bg-black/60 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-white border border-white/15">
             {pageNumber ? `Scan Page ${pageNumber}` : "Paper Scanner"}
           </span>
         </div>
@@ -230,7 +244,7 @@ export default function ScannerCamera({
               type="button"
               onClick={toggleTorch}
               aria-label="Toggle flashlight"
-              className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-full transition-colors active:scale-95 ${
+              className={`flex h-11 w-11 cursor-pointer items-center justify-center rounded-full transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
                 torch ? "bg-amber-500 text-black shadow-lg" : "bg-white/10 text-white hover:bg-white/20"
               }`}
             >
@@ -242,7 +256,7 @@ export default function ScannerCamera({
             onClick={switchCamera}
             aria-label="Flip camera"
             title="Switch front / rear camera"
-            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             <RotateCw className="h-4 w-4" />
           </button>
@@ -250,14 +264,17 @@ export default function ScannerCamera({
       </div>
 
       {/* ── Viewfinder stage (Takes exact remaining flex space with min-h-0) ── */}
-      <div className="relative flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden bg-black">
+      <div
+        className="relative flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden bg-black"
+        style={{ containerType: "size" }}
+      >
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted
           aria-label="Camera preview"
-          className={`w-full h-full object-cover pointer-events-none transition-opacity duration-300 ${
+          className={`w-full h-full object-contain pointer-events-none transition-opacity duration-300 ${
             state === "live" ? "opacity-100" : "opacity-0"
           }`}
         />
@@ -273,7 +290,7 @@ export default function ScannerCamera({
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center bg-zinc-950 z-10 max-w-sm mx-auto">
             <AlertTriangle className="h-8 w-8 text-amber-400" aria-hidden />
             <p className="text-base font-black text-white font-outfit">Camera Access Blocked</p>
-            <p className="text-xs text-zinc-400 leading-relaxed mb-2">
+            <p className="text-pretty text-xs text-zinc-400 leading-relaxed mb-2">
               Enable camera permissions in your browser settings, or use the device's system camera or photo gallery.
             </p>
             <div className="flex flex-col w-full gap-2 pt-2">
@@ -282,7 +299,7 @@ export default function ScannerCamera({
                 onClick={() => systemInputRef.current?.click()}
                 icon={<Smartphone className="h-4 w-4" />}
               >
-                Use System Camera
+                Use device camera
               </Button>
               {importButton}
             </div>
@@ -293,7 +310,7 @@ export default function ScannerCamera({
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center bg-zinc-950 z-10 max-w-sm mx-auto">
             <VideoOff className="h-8 w-8 text-zinc-500" aria-hidden />
             <p className="text-base font-black text-white font-outfit">No Camera Available</p>
-            <p className="text-xs text-zinc-400 leading-relaxed mb-2">
+            <p className="text-pretty text-xs text-zinc-400 leading-relaxed mb-2">
               We couldn't detect a live camera stream on this device. You can still scan via system camera or photos.
             </p>
             <div className="flex flex-col w-full gap-2 pt-2">
@@ -302,7 +319,7 @@ export default function ScannerCamera({
                 onClick={() => systemInputRef.current?.click()}
                 icon={<Smartphone className="h-4 w-4" />}
               >
-                Use System Camera
+                Use device camera
               </Button>
               {importButton}
             </div>
@@ -312,7 +329,7 @@ export default function ScannerCamera({
         {/* Live A4 Framing Guide Overlay */}
         {state === "live" && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4 sm:p-6">
-            <div className="relative aspect-[1/1.414] w-full max-w-[min(82vw,400px)] max-h-[min(65vh,520px)] rounded-2xl border-2 border-indigo-400/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]">
+            <div className="relative aspect-[1/1.414] h-[min(78cqh,520px)] w-auto max-w-[min(88cqw,400px)] rounded-2xl border-2 border-indigo-400/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]">
               {/* Corner L-brackets */}
               <span className="absolute -left-1 -top-1 h-7 w-7 rounded-tl-xl border-l-[3.5px] border-t-[3.5px] border-white shadow-sm" />
               <span className="absolute -right-1 -top-1 h-7 w-7 rounded-tr-xl border-r-[3.5px] border-t-[3.5px] border-white shadow-sm" />
@@ -320,7 +337,7 @@ export default function ScannerCamera({
               <span className="absolute -left-1 -bottom-1 h-7 w-7 rounded-bl-xl border-l-[3.5px] border-b-[3.5px] border-white shadow-sm" />
 
               <div className="absolute inset-x-0 bottom-3 text-center">
-                <span className="rounded-full bg-black/75 px-3.5 py-1 text-[11px] font-bold text-white backdrop-blur-md border border-white/20">
+                <span className="rounded-full bg-black/75 px-3.5 py-1 text-xs font-bold text-white border border-white/20">
                   Align document within frame
                 </span>
               </div>
@@ -329,66 +346,92 @@ export default function ScannerCamera({
         )}
 
         {error && (
-          <div className="absolute inset-x-4 top-4 rounded-xl border border-red-500/30 bg-red-500/25 px-3.5 py-2.5 text-xs font-bold text-red-200 backdrop-blur-md z-30">
+          <div className="absolute inset-x-4 top-4 rounded-xl border border-red-500/30 bg-red-500/25 px-3.5 py-2.5 text-xs font-bold text-red-200 z-30">
             {error}
           </div>
         )}
       </div>
 
       {/* ── Bottom Controls (Fixed height shrink-0, always visible) ── */}
-      <div className="shrink-0 flex items-center justify-between px-6 pt-2 pb-6 sm:pb-8 bg-gradient-to-t from-black/95 via-black/75 to-transparent z-20">
-        {/* System Camera Launcher */}
-        <label
-          title="Open device native system camera"
-          className="flex flex-col items-center justify-center gap-1.5 text-white/80 hover:text-white transition-all cursor-pointer group active:scale-95"
-        >
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 group-hover:bg-white/20 backdrop-blur-md border border-white/10 transition-colors shadow-md">
-            <Smartphone className="h-5 w-5 text-indigo-400" />
+      <div className="shrink-0 z-20 bg-gradient-to-t from-black/95 via-black/75 to-transparent pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] sm:pb-8">
+        {/* Single disclosure for the two alternate capture paths. */}
+        {showMoreWays && (
+          <div className="mx-4 mb-3 space-y-2 rounded-2xl border border-white/15 bg-black/80 p-3 backdrop-blur-md">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setShowMoreWays(false);
+                systemInputRef.current?.click();
+              }}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-white transition-colors hover:bg-white/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <Smartphone className="h-5 w-5 text-indigo-400" />
+              Use device camera
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setShowMoreWays(false);
+                fileRef.current?.click();
+              }}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-white transition-colors hover:bg-white/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <ImageUp className="h-5 w-5 text-emerald-400" />
+              Choose from photos
+            </button>
           </div>
-          <span className="text-[10px] font-bold tracking-tight">System Cam</span>
-          <input
-            ref={systemInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            disabled={busy}
-            className="sr-only"
-            onChange={handleSystemCapture}
-            tabIndex={0}
-          />
-        </label>
+        )}
 
-        {/* Capture Shutter Button */}
-        <button
-          type="button"
-          onClick={handleCapture}
-          disabled={state !== "live" || busy}
-          aria-label="Capture page"
-          className="relative flex h-18 w-18 cursor-pointer items-center justify-center rounded-full border-4 border-white bg-transparent transition-transform duration-150 hover:scale-105 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-40 shadow-2xl"
-        >
-          <span className="h-14 w-14 rounded-full bg-white transition-all group-active:scale-95" />
-        </button>
+        <div className="flex items-center justify-between px-6">
+          {/* Spacer keeps the single shutter visually centred. */}
+          <div className="w-14" aria-hidden />
 
-        {/* Gallery / Photos Import */}
-        <label
-          title="Import photo from device gallery"
-          className="flex flex-col items-center justify-center gap-1.5 text-white/80 hover:text-white transition-all cursor-pointer group active:scale-95"
-        >
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 group-hover:bg-white/20 backdrop-blur-md border border-white/10 transition-colors shadow-md">
-            <ImageUp className="h-5 w-5 text-emerald-400" />
-          </div>
-          <span className="text-[10px] font-bold tracking-tight">Gallery</span>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            multiple
-            disabled={busy}
-            className="sr-only"
-            onChange={handleFile}
-            tabIndex={0}
-          />
-        </label>
+          {/* Capture Shutter Button — the one primary action. */}
+          <button
+            type="button"
+            onClick={handleCapture}
+            disabled={state !== "live" || busy}
+            aria-label="Scan with camera"
+            className="relative flex h-18 w-18 cursor-pointer items-center justify-center rounded-full border-4 border-white bg-transparent transition-transform duration-150 hover:scale-105 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-40 shadow-2xl"
+          >
+            <span className="h-14 w-14 rounded-full bg-white transition-all group-active:scale-95" />
+          </button>
+
+          {/* More ways to add disclosure */}
+          <button
+            type="button"
+            onClick={() => setShowMoreWays((v) => !v)}
+            aria-expanded={showMoreWays}
+            className="flex w-14 flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-1 text-white/80 transition-all hover:text-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            {showMoreWays ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            <span className="text-center text-xs font-bold leading-tight">More ways</span>
+          </button>
+        </div>
+
+        {/* Hidden inputs — all three paths remain reachable. */}
+        <input
+          ref={systemInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          disabled={busy}
+          className="sr-only"
+          onChange={handleSystemCapture}
+          tabIndex={0}
+        />
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          disabled={busy}
+          className="sr-only"
+          onChange={handleFile}
+          tabIndex={0}
+        />
       </div>
     </div>,
     document.body,

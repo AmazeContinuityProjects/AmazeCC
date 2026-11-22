@@ -1,5 +1,6 @@
 "use client";
 
+import { FOCUS_RING } from "@/lib/uiTokens";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, ShieldAlert, ShieldCheck, Eye, Trash2, Users, AlertTriangle, FileText, Lock } from "lucide-react";
@@ -15,7 +16,7 @@ export default function FriendFinderDisclaimerView() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen w-full px-4 py-20 bg-slate-50/70 dark:bg-[#03060F] transition-colors duration-300 relative overflow-hidden text-slate-800 dark:text-gray-200 font-sans">
+    <div className="flex flex-col items-center justify-start min-h-screen w-full px-4 py-20 bg-slate-50/70 dark:bg-background transition-colors duration-300 relative overflow-hidden text-slate-800 dark:text-gray-200 font-sans">
       {/* Ambient Background Glows */}
       <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-500/5 blur-[120px]" />
@@ -24,14 +25,14 @@ export default function FriendFinderDisclaimerView() {
 
       {/* Navigation Bar */}
       <nav
-        className="fixed top-0 left-0 right-0 z-50 bg-white/85 dark:bg-[#03060F]/85 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.08] transition-all"
+        className="fixed top-0 left-0 right-0 z-50 bg-white/85 dark:bg-background/85 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.08] transition-all"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
               href="/friend-finder"
-              className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors py-1.5 px-3 rounded-xl bg-slate-100 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 active:scale-95"
+              className={`inline-flex min-h-11 shrink-0 items-center gap-2 text-xs font-bold text-slate-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors px-3 rounded-xl bg-slate-100 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 active:scale-95 ${FOCUS_RING}`}
             >
               <ArrowLeft size={14} />
               <span>Back to Friend Finder</span>
@@ -41,14 +42,14 @@ export default function FriendFinderDisclaimerView() {
           <div className="flex items-center gap-2">
             <Link
               href="/privacy"
-              className="text-xs font-semibold text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white px-2.5 py-1.5 rounded-lg transition-colors hidden sm:inline-flex items-center gap-1.5"
+              className={`text-xs font-semibold text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white px-2.5 py-1.5 rounded-lg transition-colors hidden sm:inline-flex items-center gap-1.5 ${FOCUS_RING}`}
             >
               <ShieldCheck size={13} />
               <span>Privacy</span>
             </Link>
             <Link
               href="/terms"
-              className="text-xs font-semibold text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white px-2.5 py-1.5 rounded-lg transition-colors hidden sm:inline-flex items-center gap-1.5"
+              className={`text-xs font-semibold text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white px-2.5 py-1.5 rounded-lg transition-colors hidden sm:inline-flex items-center gap-1.5 ${FOCUS_RING}`}
             >
               <FileText size={13} />
               <span>Terms</span>
@@ -64,7 +65,7 @@ export default function FriendFinderDisclaimerView() {
           <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <div className="text-xs sm:text-sm leading-relaxed space-y-1">
             <p className="font-bold font-outfit text-sm sm:text-base">Voluntary Data Sharing & Liability Notice</p>
-            <p className="text-amber-800/90 dark:text-amber-300/90">
+            <p className="text-amber-800/90 dark:text-amber-300/90 text-pretty">
               Timetable sharing on AmazeCC is entirely voluntary and opt-in. Please review how your registered course
               data is displayed to enrolled classmates and the boundaries of AmazeCC&apos;s responsibility.
             </p>
@@ -72,12 +73,12 @@ export default function FriendFinderDisclaimerView() {
         </div>
 
         {/* Main Content Card */}
-        <article className="card-surface border border-slate-200/80 dark:border-white/[0.08] rounded-3xl p-6 sm:p-10 shadow-xl space-y-8 text-slate-700 dark:text-gray-300 bg-white/90 dark:bg-zinc-900/80 backdrop-blur-sm">
+        <article className="card-surface border border-slate-200/80 dark:border-white/[0.08] rounded-[24px] p-6 sm:p-10 shadow-xl space-y-8 text-slate-700 dark:text-gray-300 bg-white/90 dark:bg-zinc-900/80 backdrop-blur-sm">
           <header className="border-b border-slate-100 dark:border-white/[0.08] pb-6 space-y-2">
-            <span className="text-[11px] font-mono uppercase tracking-wider font-extrabold text-indigo-600 dark:text-indigo-400">
+            <span className="text-xs font-mono uppercase tracking-wider font-extrabold text-indigo-600 dark:text-indigo-400">
               Amaze Continuity Projects
             </span>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white leading-tight font-outfit">
+            <h1 className="text-2xl sm:text-[32px] font-black text-slate-900 dark:text-white leading-tight font-outfit text-balance">
               Friend Finder Disclaimer & Sharing Terms
             </h1>
             <p className="text-xs text-slate-500 dark:text-gray-400 font-medium">
@@ -244,7 +245,7 @@ export default function FriendFinderDisclaimerView() {
           <footer className="pt-4 border-t border-slate-100 dark:border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4">
             <Link
               href="/friend-finder"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-500 hover:bg-indigo-600 active:scale-[0.98] text-white font-bold px-6 py-3 text-xs shadow-lg shadow-indigo-500/20 transition-all cursor-pointer"
+              className={`w-full sm:w-auto inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-500 hover:bg-indigo-600 active:scale-[0.98] text-white font-bold px-6 text-xs shadow-lg shadow-indigo-500/20 transition-all cursor-pointer ${FOCUS_RING} focus-visible:ring-offset-2`}
             >
               <span>Return to Friend Finder</span>
             </Link>

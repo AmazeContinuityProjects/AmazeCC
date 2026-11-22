@@ -27,8 +27,10 @@ describe("oauth2 PKCE helpers", () => {
     expect(a.verifier).not.toBe(b.verifier);
   });
 
-  it("requests only scopes registered for the AmazeCC web client", () => {
-    expect(OIDC.scope).toBe("openid profile email");
+  it("requests only scopes registered for the AmazeCC web client, including refresh tokens", () => {
+    // offline_access is required for the rotating refresh tokens used by
+    // getValidAccessToken()/handleUnauthorized() (silent renewal).
+    expect(OIDC.scope).toBe("openid profile email offline_access");
   });
 
   it("getAccessTokenSync returns null when there is no stored token", () => {

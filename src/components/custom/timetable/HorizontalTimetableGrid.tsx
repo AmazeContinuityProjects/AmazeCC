@@ -10,6 +10,7 @@ import type { AddedCourse, GapDetail, TimetablePeriod } from "@amazecontinuitypr
 import type { NormalizedCourse } from "@/types/course";
 import ModernHorizontalTimetableGrid from "./ModernHorizontalTimetableGrid";
 import ClassicHorizontalTimetableGrid from "./ClassicHorizontalTimetableGrid";
+import type { AttendanceTone } from "./SlotDetailSheet";
 
 export interface HorizontalTimetableGridProps {
   courses: (AddedCourse | NormalizedCourse | any)[];
@@ -19,6 +20,8 @@ export interface HorizontalTimetableGridProps {
   blockedSlots?: Set<string>;
   onToggleBlockSlot?: (slot: string) => void;
   selectedGapDetails?: GapDetail[] | null;
+  /** Attendance figures shown in the modern grid's tapped-cell sheet. */
+  attendanceByCourse?: Record<string, AttendanceTone>;
   title?: string;
   showLegend?: boolean;
   className?: string;
@@ -33,6 +36,7 @@ export default function HorizontalTimetableGrid({
   blockedSlots,
   onToggleBlockSlot,
   selectedGapDetails,
+  attendanceByCourse,
   title,
   showLegend,
   className,
@@ -64,6 +68,7 @@ export default function HorizontalTimetableGrid({
       blockedSlots={blockedSlots}
       onToggleBlockSlot={onToggleBlockSlot}
       selectedGapDetails={selectedGapDetails}
+      attendanceByCourse={attendanceByCourse}
       title={title}
       showLegend={showLegend}
       className={className}

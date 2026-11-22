@@ -4,12 +4,12 @@ import {
   DAYS_OF_WEEK,
   DayId,
   MORNING_BEFORE_MIN,
-  expandSlotSpellings,
   periodListsClash,
   splitSlots,
   timeToMinutes,
   type SlotPeriod,
 } from "@/lib/slots";
+import { ffcsExpandSlotSpellings } from "@/lib/ffcsTimetableData";
 
 /**
  * The generator's search core: the lab-day and half-day pruning rules and the
@@ -299,7 +299,7 @@ export function buildWalkRules(
         // The same spellings set `dayOccupancy` builds from the scored week's
         // split tokens: the mask has to answer `owned.has(cellSlot)` the same
         // way or the bound drifts from the metric it bounds.
-        const owned = expandSlotSpellings(splitSlots(offering.SLOT));
+        const owned = ffcsExpandSlotSpellings(splitSlots(offering.SLOT));
         let mask = 0;
         for (const cell of cells) {
           for (const slot of cell.slots) {

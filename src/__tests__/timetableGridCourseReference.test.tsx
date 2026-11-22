@@ -46,10 +46,12 @@ describe("attendance timetable course reference", () => {
           row({ courseCode: "BCSE101" }),
           row({ courseCode: "BCSE202", courseTitle: "Networks", slotName: "F1", slotVenue: "AB3-102" }),
         ]}
-      />
+      />,
     );
 
-    const heading = await screen.findByRole("heading", { name: /Course Reference/ });
+    // SelectedCoursesList is loaded through next/dynamic, so under a parallel
+    // full-suite run its module can take longer than findByRole's 1s default.
+    const heading = await screen.findByRole("heading", { name: /Course Reference/ }, { timeout: 10000 });
     expect(heading).toBeDefined();
 
     // The shared component's two responsive halves are both in the DOM: the
@@ -70,7 +72,7 @@ describe("attendance timetable course reference", () => {
           row({ courseCode: "BCSE101", slotName: "A1", courseType: "TH" }),
           row({ courseCode: "BCSE101", slotName: "L1", courseType: "LO", slotVenue: "LAB-1" }),
         ]}
-      />
+      />,
     );
 
     // The shared list sums credits across the rows it merges per code. Each

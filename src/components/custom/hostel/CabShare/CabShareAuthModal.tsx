@@ -6,9 +6,7 @@ import { api } from "@/lib/sync-engine";
 import { getValidAccessToken, signInInteractive } from "@/lib/oauth2";
 import { AlertCircle, ArrowRight, Car, ExternalLink, Loader2, Phone, Shield } from "lucide-react";
 import { ListRowText, ListShell, SectionHeader } from "../../shared/primitives";
-import { FIELD_INPUT, LIST_ROW, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
-
-const FIELD_LABEL = "block text-[10px] font-black uppercase tracking-wider text-text-muted";
+import { FIELD_INPUT, FIELD_LABEL, LIST_ROW, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 const AUTH_BASE = process.env.NEXT_PUBLIC_AUTH_URL ?? "https://auth.amazecc.com";
 
 const STEPS = [
@@ -149,11 +147,11 @@ export default function CabShareAuthModal({
             <Car className="h-5 w-5" />
           </span>
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-wider text-text-muted">One-time setup</p>
-            <h2 className="mt-1 text-lg font-black font-outfit tracking-tight text-text-heading">
+            <p className="text-xs font-black uppercase tracking-wider text-text-muted">One-time setup</p>
+            <h2 className="text-balance mt-1 text-xl font-black font-outfit tracking-tight text-text-heading">
               Start using Cab Share
             </h2>
-            <p className="mt-1 text-xs font-medium leading-relaxed text-text-secondary dark:text-text-muted">
+            <p className="text-pretty mt-1 text-xs font-medium leading-relaxed text-text-secondary dark:text-text-muted">
               Sign in with Amaze ID, link your VTOP account, and register a reachable phone number.
             </p>
           </div>
@@ -231,7 +229,7 @@ export default function CabShareAuthModal({
                   />
                 </span>
               </label>
-              <p className="flex items-center gap-1.5 text-[11px] font-medium text-text-muted">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-text-muted">
                 <Shield className="h-3.5 w-3.5" /> Shared only with confirmed ride matches.
               </p>
               <button
@@ -261,7 +259,7 @@ export default function CabShareAuthModal({
         <ListShell>
           {STEPS.map(([title, description], index) => (
             <div key={title} className={LIST_ROW}>
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-surface-secondary border border-border-muted text-[11px] font-black text-indigo-600 dark:text-indigo-400">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-surface-secondary border border-border-muted text-xs font-black text-indigo-600 dark:text-indigo-400">
                 {index + 1}
               </span>
               <ListRowText title={title} subtitle={description} />

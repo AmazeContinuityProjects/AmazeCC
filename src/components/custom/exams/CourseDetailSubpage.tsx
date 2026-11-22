@@ -21,7 +21,16 @@ import {
   useCarousel,
   type InsightSlide,
 } from "../shared/primitives";
-import { LIST_ROW, TILE_CARD, TONE_BADGE, TONE_ICON_TILE, TONE_TEXT } from "@/lib/uiTokens";
+import {
+  LIST_ROW,
+  TILE_CARD,
+  TONE_BADGE,
+  TONE_ICON_TILE,
+  TONE_TEXT,
+  ICON_WELL,
+  TEXT_BLOCK,
+  SPINNER_ICON,
+} from "@/lib/uiTokens";
 import { toneForGrade, gradePoints } from "@/lib/gradeHistory";
 import {
   buildGradeBoundaries,
@@ -1752,7 +1761,7 @@ export default function CourseDetailSubpage({
               title={`Download ${tag ? `${tag} ` : ""}course plan Excel`}
               aria-label={`Download ${tag ? `${tag} ` : ""}course plan Excel`}
             >
-              {busy("course-plan") ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {busy("course-plan") ? <RefreshCw className={SPINNER_ICON} /> : <Download className="w-4 h-4" />}
             </button>
           </div>
 
@@ -1774,11 +1783,7 @@ export default function CourseDetailSubpage({
               title={`Download ${tag ? `${tag} ` : ""}all course materials ZIP`}
               aria-label={`Download ${tag ? `${tag} ` : ""}all course materials ZIP`}
             >
-              {busy("all-materials") ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
+              {busy("all-materials") ? <RefreshCw className={SPINNER_ICON} /> : <Download className="w-4 h-4" />}
             </button>
           </div>
 
@@ -1800,11 +1805,7 @@ export default function CourseDetailSubpage({
               title={`Download ${tag ? `${tag} ` : ""}general materials ZIP`}
               aria-label={`Download ${tag ? `${tag} ` : ""}general materials ZIP`}
             >
-              {busy("general-materials") ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
+              {busy("general-materials") ? <RefreshCw className={SPINNER_ICON} /> : <Download className="w-4 h-4" />}
             </button>
           </div>
         </ListShell>
@@ -1823,8 +1824,7 @@ export default function CourseDetailSubpage({
   // of these used to be four hand-rolled maps declared inside the component,
   // which is exactly what `TONE_TEXT` / `TONE_BADGE` in `@/lib/uiTokens` exist
   // to stop — `ATT_TONE` above is the only lookup this file owns now.
-  const scopeAccent = (badge: "Theory" | "Lab") =>
-    `w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE[SCOPE_TONE[badge]]}`;
+  const scopeAccent = (badge: "Theory" | "Lab") => `${ICON_WELL} ${TONE_ICON_TILE[SCOPE_TONE[badge]]}`;
 
   const renderLogRow = (item: any, d: any, badge: "Theory" | "Lab") => (
     <button onClick={() => setInnerTab(`${badge.toLowerCase()}-log`)} className={LIST_ROW}>
@@ -1998,13 +1998,13 @@ export default function CourseDetailSubpage({
                 const hasNotes = notesTracker[item?.courseCode || ""]?.[h.date] === true;
                 return (
                   <div key={i} className={LIST_ROW}>
-                    <span className="flex items-center gap-3 min-w-0 flex-1">
+                    <span className={`flex items-center gap-3 ${TEXT_BLOCK}`}>
                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ATT_DOT[st] ?? "bg-amber-500"}`} />
                       <span className="min-w-0">
                         <span className="block font-bold text-sm text-text-heading truncate font-outfit leading-tight">
                           {h.date}
                         </span>
-                        <span className={`block text-[11px] font-medium mt-0.5 ${TONE_TEXT[tone]}`}>{h.status}</span>
+                        <span className={`block text-xs font-medium mt-0.5 ${TONE_TEXT[tone]}`}>{h.status}</span>
                       </span>
                     </span>
                     {!isPresent && (
@@ -2134,7 +2134,7 @@ export default function CourseDetailSubpage({
             </ToneBadge>
           }
         />
-        <p className="px-1 -mt-1 text-[11px] text-text-secondary dark:text-text-muted font-medium">
+        <p className="px-1 -mt-1 text-xs text-text-secondary dark:text-text-muted font-medium">
           {formatNumber(remaining)} weightage points still available across these {assessments.length} assessment
           {assessments.length === 1 ? "" : "s"}.
         </p>
@@ -2441,11 +2441,11 @@ export default function CourseDetailSubpage({
               >
                 <Sparkles className="h-4.5 w-4.5" />
               </span>
-              <span className="min-w-0 flex-1">
+              <span className={TEXT_BLOCK}>
                 <span className="block text-sm font-bold text-text-heading font-outfit tracking-tight">
                   Simulate marks &amp; regimen
                 </span>
-                <span className="block text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5 truncate">
+                <span className="block text-xs text-text-secondary dark:text-text-muted font-medium mt-0.5 truncate">
                   What-if scores, points lost and the exact FAT target
                 </span>
               </span>
@@ -2469,11 +2469,11 @@ export default function CourseDetailSubpage({
           {/* Grade Insights */}
           <div className="space-y-3">
             <SectionHeader icon={Gauge} title="Grade insights" right={<ToneBadge tone="blue">Beta</ToneBadge>} />
-            <details className="group text-[11px] leading-relaxed text-text-secondary dark:text-text-muted">
+            <details className="group text-xs leading-relaxed text-text-secondary dark:text-text-muted">
               <summary className="cursor-pointer list-none inline-flex items-center gap-1 font-semibold text-text-heading hover:underline">
                 <Info className="h-3.5 w-3.5" /> How this works &amp; why it is safe
               </summary>
-              <div className={`${TILE_CARD} mt-3 space-y-2 text-[11px] font-medium`}>
+              <div className={`${TILE_CARD} mt-3 space-y-2 text-xs font-medium`}>
                 <p>
                   <strong>Proof of concept:</strong> an accurate class curve needs the class average and standard
                   deviation, which means aggregating the marks of every student. That cannot be done securely on your
@@ -2491,7 +2491,7 @@ export default function CourseDetailSubpage({
             {frozenCount > 0 && (
               <div className="flex items-center gap-2 px-1">
                 <ToneBadge tone="zinc">{frozenCount} pinned</ToneBadge>
-                <span className="text-[11px] text-text-muted font-medium">
+                <span className="text-xs text-text-muted font-medium">
                   Stand as recorded — no earlier mark on this device to update from.
                 </span>
               </div>
@@ -2509,7 +2509,7 @@ export default function CourseDetailSubpage({
                 <h4 className="text-sm font-bold text-text-heading font-outfit tracking-tight">
                   Absolute grading enforced
                 </h4>
-                <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
+                <p className="text-xs text-text-secondary dark:text-text-muted font-medium mt-0.5">
                   Your grade comes from fixed percentage boundaries, not from how the class performed.
                 </p>
               </div>
@@ -2602,7 +2602,7 @@ export default function CourseDetailSubpage({
                             band starts again. */}
                     <div className={`${TILE_CARD} ${statsMissing ? "opacity-60 grayscale" : ""}`}>
                       {isRelative && (
-                        <p className="mb-2.5 flex items-center gap-2 text-[11px] font-medium text-text-secondary dark:text-text-muted flex-wrap">
+                        <p className="mb-2.5 flex items-center gap-2 text-xs font-medium text-text-secondary dark:text-text-muted flex-wrap">
                           <ToneDot tone={statsMissing ? "zinc" : early ? "amber" : "emerald"} />
                           {statsMissing ? (
                             <span>
@@ -2916,7 +2916,7 @@ export default function CourseDetailSubpage({
                               <div className="p-4 bg-surface-secondary/40 dark:bg-zinc-900/40 border-t border-border-muted dark:border-border/70 space-y-3">
                                 {suggestions && (
                                   <div className="p-3 rounded-xl bg-surface dark:bg-zinc-800/60 border border-border-muted dark:border-zinc-700/60 space-y-1">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-text-muted block">
                                       Student Suggestions & Committee Feedback
                                     </span>
                                     <p className="text-xs sm:text-sm font-medium text-text-heading leading-relaxed">
@@ -2927,7 +2927,7 @@ export default function CourseDetailSubpage({
 
                                 {facultyReply && (
                                   <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 space-y-1">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
                                       Faculty Response / Action Taken
                                     </span>
                                     <p className="text-xs sm:text-sm font-medium leading-relaxed">{facultyReply}</p>
@@ -2936,7 +2936,7 @@ export default function CourseDetailSubpage({
 
                                 {hodComments && (
                                   <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-950 dark:text-violet-200 space-y-1">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400 block">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400 block">
                                       HOD Remarks
                                     </span>
                                     <p className="text-xs sm:text-sm font-medium leading-relaxed">{hodComments}</p>
@@ -2988,7 +2988,7 @@ export default function CourseDetailSubpage({
                   type="button"
                   onClick={() => fetchViewDetail()}
                   disabled={viewLoading}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider text-text-secondary dark:text-text-muted border border-border-muted dark:border-border bg-surface-secondary dark:bg-zinc-800 hover:bg-border-muted dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider text-text-secondary dark:text-text-muted border border-border-muted dark:border-border bg-surface-secondary dark:bg-zinc-800 hover:bg-border-muted dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 cursor-pointer"
                   title="Re-fetch this course's VTOP page (slow; 4-6 requests)"
                 >
                   <RefreshCw className={`w-3 h-3 ${viewLoading ? "animate-spin" : ""}`} />
@@ -3044,7 +3044,7 @@ export default function CourseDetailSubpage({
                                       aria-label={`Download ${mat.label} for session on ${row.date}`}
                                     >
                                       {downloadingRef === key ? (
-                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                        <RefreshCw className={SPINNER_ICON} />
                                       ) : (
                                         <Download className="w-4 h-4" />
                                       )}
@@ -3078,11 +3078,11 @@ export default function CourseDetailSubpage({
             {/* Bulk downloads — per component when embedded */}
             <div className="space-y-4">
               <div className="px-1 flex items-center justify-between gap-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-text-muted">
+                <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-text-muted">
                   Course Materials
                 </span>
                 {isEmbedded && (
-                  <span className="text-[10px] font-semibold text-text-muted">Separate files for theory &amp; lab</span>
+                  <span className="text-xs font-semibold text-text-muted">Separate files for theory &amp; lab</span>
                 )}
               </div>
               {isEmbedded ? (
@@ -3155,10 +3155,10 @@ export default function CourseDetailSubpage({
                         onClick={() => setActiveHistoryTerm(gh.semester)}
                         className={`${LIST_ROW} cursor-pointer`}
                       >
-                        <span className="w-28 shrink-0 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 truncate">
+                        <span className="w-28 shrink-0 text-xs font-bold text-zinc-600 dark:text-zinc-300 truncate">
                           {historyTermLabel(gh.semester)}
                         </span>
-                        <span className="min-w-0 flex-1">
+                        <span className={TEXT_BLOCK}>
                           <MiniBar pct={score ?? 0} tone={scoreBarTone(score)} />
                         </span>
                         <span
@@ -3215,7 +3215,7 @@ export default function CourseDetailSubpage({
                                   />
                                   <span className="shrink-0 text-sm font-black font-outfit text-zinc-800 dark:text-zinc-100">
                                     {d.scoredMark ?? "-"}
-                                    <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 ml-0.5">
+                                    <span className="text-xs font-medium text-zinc-400 dark:text-zinc-500 ml-0.5">
                                       /{d.maxMark ?? "-"}
                                     </span>
                                   </span>
@@ -3297,7 +3297,7 @@ export default function CourseDetailSubpage({
                       subtitle={`${materialSheet.row?.date ?? ""} · Ref ${mat.materialId}`}
                     />
                     {isDownloading ? (
-                      <RefreshCw className="w-4 h-4 animate-spin text-blue-500 shrink-0" />
+                      <RefreshCw className={`${SPINNER_ICON} text-blue-500 shrink-0`} />
                     ) : (
                       <Download className="w-4 h-4 text-text-muted shrink-0" />
                     )}

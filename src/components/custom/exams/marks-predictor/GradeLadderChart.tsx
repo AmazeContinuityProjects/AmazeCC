@@ -1,7 +1,7 @@
 "use client";
 
 import { TONE_TEXT } from "@/lib/uiTokens";
-import { toneForGrade } from "@/lib/gradeHistory";
+import { GRADE_BAR, toneForGrade } from "@/lib/gradeHistory";
 
 /**
  * The single grade-ladder visual.
@@ -13,18 +13,6 @@ import { toneForGrade } from "@/lib/gradeHistory";
  * render the engine's ladder through this, so the two screens cannot disagree
  * about where a band starts again.
  */
-const GRADE_BAR: Record<string, string> = {
-  S: "bg-amber-500",
-  A: "bg-emerald-500",
-  B: "bg-blue-500",
-  C: "bg-cyan-500",
-  D: "bg-violet-500",
-  E: "bg-red-500",
-  F: "bg-red-600",
-  N: "bg-zinc-400",
-  P: "bg-violet-500",
-};
-
 const GRADE_TINT: Record<string, string> = {
   S: "bg-amber-500/15",
   A: "bg-emerald-500/15",
@@ -61,9 +49,7 @@ export default function GradeLadderChart({
 }) {
   return (
     <>
-      <div
-        className={`flex h-10 w-full gap-0.5 overflow-hidden ${dimmed ? "opacity-60 grayscale" : ""}`}
-      >
+      <div className={`flex h-10 w-full gap-0.5 overflow-hidden ${dimmed ? "opacity-60 grayscale" : ""}`}>
         {bands.map((b) => (
           <div
             key={b.grade}
@@ -73,16 +59,14 @@ export default function GradeLadderChart({
               GRADE_TINT[b.grade] ?? "bg-zinc-500/10"
             } ${standingGrade === b.grade && !dimmed ? "ring-2 ring-inset ring-indigo-500" : ""}`}
           >
-            <span className={`text-[11px] font-black font-outfit ${TONE_TEXT[toneForGrade(b.grade)]}`}>
-              {b.grade}
-            </span>
+            <span className={`text-xs font-black font-outfit ${TONE_TEXT[toneForGrade(b.grade)]}`}>{b.grade}</span>
           </div>
         ))}
       </div>
 
       <div className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1">
         {bands.map((b) => (
-          <span key={b.grade} className="inline-flex items-center gap-1.5 text-[10px] font-bold text-text-muted">
+          <span key={b.grade} className="inline-flex items-center gap-1.5 text-xs font-bold text-text-muted">
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${GRADE_BAR[b.grade] ?? "bg-zinc-400"}`} />
             {b.grade} {b.range}
           </span>
@@ -90,7 +74,7 @@ export default function GradeLadderChart({
       </div>
 
       {standingGrade && currentPct != null && !dimmed ? (
-        <p className="mt-2.5 text-[11px] font-bold text-text-heading">
+        <p className="mt-2.5 text-xs font-bold text-text-heading">
           On {currentPct.toFixed(1)}% of the ladder — inside the{" "}
           <span className={TONE_TEXT[toneForGrade(standingGrade)]}>{standingGrade}</span> band.
         </p>
